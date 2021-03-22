@@ -3,6 +3,8 @@
 \\ April 10th, 2012
 \\ Revised May 7, 2012
 \\ Revision Notes:
+\\ V6
+\\ -fixed binning of data
 \\ V5
 \\ -removed sonalert functionality from being activated when a reward is presented
 \\ -updated inputs / outputs for dr. gancarz-kausch's new boxes
