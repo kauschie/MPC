@@ -3,6 +3,11 @@
 \\ May 1st, 2015
 \\ Feature Highlights:
 \\ Random Ratio (With replacement)
+\\ V2 changes:
+\\	--Added Rsp Latency Means and Reward Variables
+\\		|_ measures latency to make any response as well as the active lever response
+\\	--Addded Show Commands
+
 
 
 
@@ -49,7 +54,9 @@
 ^ActTORsp	= 5
 ^InactTORsp	= 6
 ^LatencyMean	= 7
-^RspLatencyMean	= 8
+^RspLatency1Mean = 8
+^RspLatency2Mean = 9
+^Reward		= 10
 
 
 
@@ -67,15 +74,16 @@
 \M - 
 \N - Reward Latency Array
 \O - Reward Latency Array Counter
-\P - 1st Response Latency Array
-\Q - 1st Response Latency Array Counter
-\R
+\P - 1st Response Latency Array FOR ANY LEVER (Q(0)) COUNTER
+\Q - (0) 1st Response TO ANY LEVER Latency Array Counter, (1) 1ST RSP LATENCY COUNTER FOR ACT LEVER
+\R - 1st Response Latency Array FOR ACT LEVER (Q(1)) COUNTER
 \S
 \T - Timer  Array
 ^SessionTimer = 0
 ^TimeOutTimer = 1
 ^RewardTimer = 2
-^RspLatencyTimer = 3
+^RspLatency1Timer = 3
+^RspLatency2Timer = 4
 \U
 \V
 \W
@@ -89,6 +97,8 @@
 
 
 DIM A = 11
+DIM Q = 1
+DIM T = 
 
 
 
@@ -152,7 +162,7 @@ S3, \\ phase 1 pretraining Left Act
 
 #Z^Z_Stop: OFF 1,2; SET B(^SessionEnd)=T(^SessionTimer) ---> sEND
 #R^LeftLeverRsp: ADD B(^ActRsp), B(^LeftRsp), L; IF L>=K [@Reward, @cont]
-		@Reward: Z^Z_Reward; ON ^LLite; SET L=0; RANDI K=D ---> S4
+		@Reward: Z^Z_Reward; ADD B(^Reward); ON ^LLite; SET L=0; RANDI K=D ---> S4
 		@Cont: ---> SX
 
 
@@ -176,7 +186,7 @@ S5, \\ phase 1 pretraining Right Act
 
 #Z^Z_Stop: OFF 1,2; SET B(^SessionEnd)=T(^SessionTimer) ---> sEND
 #R^RightLeverRsp: ADD B(^ActRsp), B(^RightRsp), L; IF L>=K [@Reward, @cont]
-		@Reward: Z^Z_Reward; ON ^RLite; SET L=0; RANDI K=D ---> S6
+		@Reward: Z^Z_Reward; ADD B(^Reward); ON ^RLite; SET L=0; RANDI K=D ---> S6
 		@Cont: ---> SX
 
 
@@ -232,8 +242,38 @@ S4,
 
 
 
-S.S.4,   \\ 1st Response Latency P(Q)
+S.S.4,   \\ 1st Response TO ANY LEVER Latency P(Q(0)) 
 
+
+
+
+
+S1,
+
+
+#Start: ---> S2
+
+S2,
+
+#Z^Z_End: ---> S4
+#R^LeftLeverRsp ! #R^RightLeverRsp: SET P(Q(0)) = T(^RspLatency1Timer), T(^RspLatency1Timer) = 0; ADD Q(0); SET P(Q(0)) = -987.987; SET C(I)=T(^SessionTimer); ADD I; SET C(I)=-5; ADD I; SET I=-987.987  ---> S3
+0.01": ADD T(^RspLatency1Timer) ---> SX
+
+S3,
+
+#Z^Z_End:  ---> S4
+#Z^Z_RspLatency: ---> S2
+
+
+S4,
+
+7": ARITHMETICMEAN B(^RspLatency1Mean)=P,0,Q(0) ---> SX
+
+
+
+
+
+S.S.5,   \\ 1st Response TO ACTIVE LEVER Latency R(Q(1))
 
 
 
@@ -250,8 +290,8 @@ S1,
 S2,
 
 #Z^Z_End: ---> S6
-#R^LeftLeverRsp: SET P(Q) = T(^RspLatencyTimer), T(^RspLatencyTimer) = 0; ADD Q; SET P(Q) = -987.987 ---> S3
-0.01": ADD T(^RspLatencyTimer) ---> SX
+#R^LeftLeverRsp: SET P(Q(1)) = T(^RspLatency2Timer), T(^RspLatency2Timer) = 0; ADD Q(1); SET P(Q(1)) = -987.987; SET C(I)=T(^SessionTimer); ADD I; SET C(I)=-6; ADD I; SET I=-987.987 ---> S3
+0.01": ADD T(^RspLatency2Timer) ---> SX
 
 S3,
 
@@ -261,8 +301,8 @@ S3,
 S4,
 
 #Z^Z_End: ---> S6
-#R^RightLeverRsp: SET P(Q) = T(^RspLatencyTimer), T(^RspLatencyTimer) = 0; ADD Q; SET P(Q) = -987.987 ---> S5
-0.01": ADD T(^RspLatencyTimer) ---> SX
+#R^RightLeverRsp: SET P(Q(1)) = T(^RspLatency2Timer), T(^RspLatency2Timer) = 0; ADD Q(1); SET P(Q(1)) = -987.987; SET C(I)=T(^SessionTimer); ADD I; SET C(I)=-6; ADD I; SET I=-987.987  ---> S5
+0.01": ADD T(^RspLatency2Timer) ---> SX
 
 S5,
 
@@ -272,14 +312,11 @@ S5,
 
 S6,
 
-7": ARITHMETICMEAN B(RspLatencyMean)=P,0,Q ---> SX
+7": ARITHMETICMEAN B(^RspLatency2Mean)=P,0,Q(1) ---> SX
 
 
 
-
-
-
-S.S.5, \\ Reward Latency N(O)
+S.S.6, \\ Reward Latency N(O)
 
 
 
@@ -312,12 +349,12 @@ S6,
 
 
 
-S.S.6, \\  IRT Array By Trial
+S.S.7, \\  IRT Array By Trial	\\ Programmed Above: Rsponse Latencies:	-5 (any rsp after start of trial) and -6 (act rsp after start of trial)
 
 
 S1,
 
-#Start: SET C(I) = J; ADD I ---> S2
+#Start: SET C(I) = J*(-1000000000); ADD I ---> S2
 
 S2,
 
@@ -326,12 +363,33 @@ S2,
 #R^RightLeverRsp: SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -2; ADD I; SET C(I) = -987.987 ---> SX				\\  right response
 #Z^Z_Reward: SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -8; ADD I; SET C(I) = -987.987  ---> SX				\\ reward issued
 #Z^Z_RspLatency: SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -9; ADD I; SET C(I) = -987.987  ---> SX  			\\ Reward Collected
-#Z^Z_LatencyOver: SET C(I) = J; ADD I; SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -9; ADD I; SET C(I) = -987.987  ---> SX   \\ time that trial starts, trial mark
+#Z^Z_LatencyOver: SET C(I) = J; ADD I; SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -7; ADD I; SET C(I) = -987.987  ---> SX   \\ time that trial starts, trial mark
 
 
 
 
 
+S.S.8 \\ SONALERT CONTROL
+
+
+
+
+
+
+
+S.S.9, \\  SHOW COMMANDS
+
+
+S1,
+
+#START: ---> S2
+
+S2,
+
+0.01": SHOW 1,Ratio Req,K; SHOW 2,Rsp Twd Ratio,L; SHOW 3,Trial,J; SHOW 4,Act Rsp,B(^ActRsp);
+	SHOW 5,Inact Rsp,B(^InactRsp); SHOW 6,InactTO Rsp,B(^InactTORsp); SHOW 7,Rewards,B(^Reward); SHOW 8,ActTO Rsp,B(^ActTORsp);
+	SHOW 9,Right Rsp,B(^RightRsp); SHOW 10,Left Rsp,B(^LeftRsp); SHOW 11,Reward Lat,T(^RewardLatencyTimer); SHOW 12,Any Lev Lat,T(^RspLatency1Timer);
+	SHOW 13,TO Timer,T(^TimeOutTimer); SHOW 14,Session Duration,T(^SessionTimer); SHOW 15,Reward Timer,T(^RewardTimer); SHOW 16,Act Lev Lat,T(^RspLatency2Timer) ---> SX 
 
 
  
