@@ -1,0 +1,48 @@
+\ Copyright (C) 2010 MED Associates, All rights reserved.
+
+
+Var_Alias Frequency      = A  \ Default = 1000 Hz
+Var_Alias Volume         = B  \ Default = 100 dB
+Var_Alias Rise/Fall Time = C  \ Default = 10 ms
+Var_Alias Duration       = D  \ Default = 1000 ms
+
+
+\*********************************************
+\              A926FREQ Schedule
+\  S1 - Set Default Values
+\       Frequency                 (1000 Hz)
+\       Volume                    (100 dB)
+\       Rise/Fall Time            (10 ms)
+\       Duration                  (1000 ms)
+\*********************************************
+S.S.1,
+S1,
+  1": SET A = 1000, B = 100, C = 10, D = 1000 ---> S2
+
+S2,
+  #START: ~InitANL926;~;              \ Reset ANL-926
+          ~SetFreq(MG, BOX, A);~;     \ Initialize Frequency
+          ~SetAmp(MG, BOX, B);~;      \ Initialize Amplitude
+          ~SetRF(MG, BOX, C);~;       \ Initialize Rise\Fall Time
+          ~SetDur(MG, BOX, D);~;      \ Initialize Duration
+          ~OnFreq(MG, BOX, A);~;      \ Issue Starting Stimulus
+           ---> S3
+
+S3,
+  #K1: SET A = A + 200;               \ Increase Frequency
+       ~OnFreq(MG, BOX, A);~ ---> S3
+  #K2: SET A = A - 200;               \ Decrease Frequency
+       ~OnFreq(MG, BOX, A);~ ---> S3
+  #K3: SET A = 0;                     \ Select White Noise
+       ~OnFreq(MG, BOX, A);~ ---> S3
+  #K4: SET A = 1000;                  \ Reset Frequency to 1000 Hz
+       ~OnFreq(MG, BOX, A);~ ---> S3
+
+
+\*********************************************
+\               Update Display
+\*********************************************
+S.S.2,
+S1,
+  1": SHOW 1,Frequency,A, 2,Amplitude,B, 3,Rise/Fall,C, 4,Duration,D ---> S1
+
