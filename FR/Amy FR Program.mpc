@@ -3,6 +3,9 @@
 \\ April 10th, 2012
 \\ Revised May 7, 2012
 \\ Revision Notes:
+\\ V5
+\\ -removed sonalert functionality from being activated when a reward is presented
+\\ -updated inputs / outputs for dr. gancarz-kausch's new boxes
 \\ V4s
 \\  -first addition to version control repository
 \\  -cannot find an earlier version of the program
@@ -16,15 +19,20 @@
 
 
 \\Inputs
-^LeftNosePoke = 1
-^RightNosePoke = 2
+^LeftPoke = 1
+^RightPoke = 2
+^MiddlePoke = 3
 
 \\Outputs
-^LeftStimLight = 1
-^RightStimLight = 2
+^LStimLight = 1
+^RStimLight = 2
 ^HouseLight = 3
 ^Pump = 4
-^Sonalert = 8
+^Sonalert = 5
+^Red = 6
+^Yellow = 7
+^Green  = 8
+
 
 \\Variables
 \A Array - Program Variables
@@ -208,7 +216,7 @@ S4,
 
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\Stimulus Light  and Sonalert Control\\
+\\\\\\\\\Stimulus Light Control\\\\\\\\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 S.S.5,
@@ -221,12 +229,12 @@ S1,
 
 S2,
 
-#Z^Z_Reward: ON A(^ActivePoke), ^Sonalert ---> S3
+#Z^Z_Reward: ON A(^ActivePoke)---> S3
 
 S3,
 
 0.01": ADD T(^StimLightTimer); IF T(^StimLightTimer) >= A(^LightDuration) [@Off, @cont]
-    @Off: OFF A(^ActivePoke), ^Sonalert; SET T(^StimLightTimer)=0 ---> S2
+    @Off: OFF A(^ActivePoke); SET T(^StimLightTimer)=0 ---> S2
     @cont: ---> SX
 
 \\\\\\\\\\\\\\\\\\\\\\\\\
