@@ -1,0 +1,368 @@
+\\ Amy Fixed Ratio Self-Admin Program
+\\ Programmed by Mike Kausch
+\\ April 18th, 2014
+
+\\Inputs
+^LeftNosePoke = 1
+^RightNosePoke = 2
+
+\\Outputs
+^LeftStimLight = 1
+^RightStimLight = 2
+^HouseLight = 3
+^Pump = 4
+
+\\Variables
+\A Array - Program Variables
+^SessionDuration = 0 \ centiseconds
+^ActivePoke = 1 \ set to 1 for left, 2 for right
+^InactivePoke = 2 \ set automatically by the program depending on activepoke's setting
+^FR = 3 \ Fixed Ratio Value
+^MaxInf = 4 \ whole number values
+^LightDuration = 5 \ centiseconds
+^PumpDuration = 6 \ centiseconds
+^TimeOut = 7
+^Bintime = 8
+^Binnum = 9
+^PRTimeout = 10
+
+\B Array - Data
+^ActR = 0 \ counts responses to active side
+^InactR = 1 \ counts responses to inactive side
+^Inf = 2 \ counts infusions
+^SessionEnd = 3
+^InactRTO = 4
+^ActRTO = 5
+^PRResp = 6
+^PRatio = 7
+
+
+\C Array - IRT Array
+\D Array - Binned Active Response Data Array
+\E - error variable
+\F Array - Binned Inactive Response Data Array
+\G Array - Binned Reward Data Array
+\H
+\I - C Array Counter
+\J - D Array Counter  (0=active, 1=inactive, 2=infusions)
+\K - Active Response Counter
+\L - Bin Counter Array
+\M - Data Writer Variable
+\N - Data Writer Variable
+\O
+\P
+\Q - Progressive Ratio Array
+\R - Progressive Ratio Counter
+\S
+\T - Timer  Array
+^SessionTimer = 0
+^StimLightTimer = 1
+^PumpTimer = 2
+^TOTimer = 3
+^STOTimer = 4
+\U
+\V
+\W
+\X
+\Y
+\Z-Signals
+^Z_Start = 1
+^Z_Reward = 2
+^Z_TimeIn = 3
+^Z_Stop = 4
+^Z_Data = 5
+^Z_StartBC = 6
+^Z_STOReset = 7
+
+DIM A = 10
+DIM B = 7
+DIM C = 99999
+DIM D = 1000
+DIM F = 1000
+DIM G = 1000
+DIM J = 2
+DIM Q = 25
+DIM T = 4
+
+
+
+\\\\\\\\\\\\\\\\
+\\Session Clock\\
+\\\\\\\\\\\\\\\\\
+
+S.S.1,
+
+S1,
+
+0.01": SET M=0, I=420, R=0  ---> S2
+
+S2,
+
+#START: Z^Z_Start; Z^Z_StartBC ---> S3
+
+S3,
+
+0.01": ADD T(^SessionTimer); IF T(^SessionTimer)=A(^SessionDuration) [@True, @False]
+    @T: Z^Z_Stop; SET B(^SessionEnd)=T(^SessionTimer)---> S4
+    @F: ---> S3
+#Z^Z_Stop: SET B(^SessionEnd)=T(^SessionTimer), B(^PRResp) = K, B(^PRatio) = Q(R) ---> S4
+
+S4,
+5":---> STOPABORTFLUSH
+
+
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\Time-Out / Time-In Control\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.2,
+
+S1,
+
+#Z^Z_Start: ON ^HouseLight ---> S2
+
+S2,
+
+#Z^Z_Reward: OFF ^HouseLight ---> S3
+
+S3,
+
+0.01": ADD T(^TOTimer); IF T(^TOTimer)>= A(^TimeOut) [@endTO, @cont]
+    @end: SET T(^TOTimer) = 0; ON ^HouseLight; Z^Z_TimeIn ---> S2
+    @cont: ---> SX
+
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\
+\\Active Poke Responses\\
+\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.3,
+
+S1,
+
+#Z^Z_Start: IF A(^ActivePoke) = 1 [@LeftActive, @continue]
+    @Left: SET A(^InactivePoke) = 2 ---> S2
+    @Cont: IF A(^ActivePoke) = 2 [@RightActive, @error]
+        @Right: SET A(^InactivePoke) = 1 ---> S2
+        @Error: SET E = 2.1; SHOW 1,error,E; Z^Z_Stop ---> S4
+
+S2,  \\ During Time In
+
+#Z^Z_Stop: ---> S4
+#RA(^ActivePoke): ADD B(^ActR), K; IF K=Q(R) [@IssueReward, @Continue]
+    @Reward: SET K=0; ADD B(^Inf), R; Z^Z_Reward; Z^Z_STOReset; IF B(^Inf)=A(^Maxinf) [@end, @cont]
+        @End: Z^Z_Stop ---> S4
+        @Cont: ---> S3
+    @Cont: ---> S2
+
+S3,  \\ During Time Out
+
+#Z^Z_Stop: ---> S4
+#Z^Z_TimeIn: ---> S2
+#RA(^ActivePoke): Add B(^ActRTO) ---> SX
+
+S4, \\ End of Program
+
+0.01": ---> SX
+
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\Inactive Poke Responses\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.4,
+
+S1,
+
+#Z^Z_Start: ---> S2
+
+S2,
+
+#Z^Z_Stop: ---> S3
+#Z^Z_Reward: ---> S4
+#RA(^InactivePoke): ADD B(^InactR) ---> SX
+
+S3,
+
+0.01" ---> SX
+
+S4,
+
+#Z^Z_Stop: ---> S3
+#Z^Z_TimeIn: ---> S2
+#RA(^InactivePoke): ADD B(^InactRTO) ---> SX
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\
+\\Stimulus Light Control\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.5,
+
+S1,
+
+#START: IF A(^LightDuration)>=0 [@notzero, @zero]
+    @notzero: ---> S2
+     @zero: ---> SX
+
+S2,
+
+#Z^Z_Reward: ON A(^ActivePoke) ---> S3
+
+S3,
+
+0.01": ADD T(^StimLightTimer); IF T(^StimLightTimer) >= A(^LightDuration) [@Off, @cont]
+    @Off: OFF A(^ActivePoke); SET T(^StimLightTimer)=0 ---> S2
+    @cont: ---> SX
+
+\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\Syringe Pump Control\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.6,
+
+S1,
+
+#START: IF A(^PumpDuration)>=0 [@notzero, @zero]
+    @notzero: ---> S2
+     @zero: ---> SX
+
+S2,
+
+#Z^Z_Reward: ON ^Pump ---> S3
+
+S3,
+
+0.01": ADD T(^PumpTimer); IF T(^PumpTimer) >= A(^PumpDuration) [@Off, @cont]
+    @Off: OFF ^Pump; SET T(^PumpTimer)=0 ---> S2
+    @cont: ---> SX
+
+
+\\\\\\\\\\\\\\\\\\\\
+\\\Response Writer\\\
+\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.7,
+
+S1,
+
+#Z^Z_Start: ---> S2
+
+S2,
+
+#RA(^ActivePoke): ADD D(J(0)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -9; ADD I; SET C(I) = -987.987 ---> SX
+#RA(^InactivePoke): ADD F(J(1)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -4; ADD I; SET C(I) = -987.987 ---> SX
+#Z^Z_Reward: ADD G(J(2)); SET C(M) = T(^SessionTimer); ADD M ---> SX
+
+\\\\\\\\\\\\\\\\\\
+\\\Show Commands\\\
+\\\\\\\\\\\\\\\\\\\\
+
+S.S.8,
+
+S1,
+
+0.01":     SHOW 1,Rsp to next Reward,(Q(R)-K);
+	SHOW 2,Current Ratio,Q(R);
+	    SHOW 3,Infusions,B(^Inf);
+    SHOW 4,Timeout Timer,T(^STOTimer);
+    SHOW 5,Time Remaining,((A(^SessionDuration)-T(^SessionTimer))/6000);
+    SHOW 6,Active Responses,B(^ActR);
+    SHOW 7,ActRsp TO,B(^ActRTO);
+    SHOW 8,Inactive Responses,B(^InactR);
+    SHOW 9,InactRsp TO,B(^InactRTO) ---> SX
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\Writing Data to C Array\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+\S.S.9,
+
+\S1,
+
+\#Z^Z_Stop: SET M=0, N=0 ---> S2
+
+\S2,
+
+\0.01": SET C(M)=A(N); ADD M, N; IF N>=8 [@next_variable, @cont]
+ \   @next: SET N=0 ---> S3
+ \   @cont: ---> SX
+
+\S3,
+
+\0.01": SET C(M)=B(N); ADD M, N; IF N>=6 [@end, @cont]
+\    @end: ---> S4
+\    @cont: ---> SX
+
+\S4,
+
+\5": Z^Z_Data ---> SX
+
+
+\\\\\\\\\\\\\\\\\
+\\\Bin Control\\\
+\\\\\\\\\\\\\\\\\
+
+S.S.10,
+
+S1,
+
+#Start: SET A(^BinTime) = A(^BinTime)*1"; IF A(^Binnum) > 0 [@calcbins, @nobin]
+            @calcbins: ---> S2
+            @nobins: ---> SX
+
+S2,
+#Z^Z_Stop: SET D(J(0)+1) = -987.987, F(J(1)+1) = -987.987, G(J(2)+1) = -987.987  ---> SX
+#Z^Z_StartBC: SET D(J(0))=0, F(J(1))=0, G(J(2))=0, L=1; SET D(J(0)+A(^Binnum)+1) = -987.987; SET F(J(1)+A(^Binnum)+1) = -987.987; SET G(J(2)+A(^Binnum)+1) = -987.987 ---> S3
+
+
+S3,        \\ ****Alter to look more pretty on printout
+
+#Z^Z_Stop: ADD J(0), J(1), J(2); SET D(J(0)+1) = -987.987, F(J(1)+1) = -987.987, G(J(2)+1) = -987.987 ---> S2
+
+A(^BinTime)#T: ADD J(0), J(1), J(2), L; IF L > A(^Binnum) [@end, @cont]
+                        @end: SET L=0, D(J(0))=0, F(J(1))=0, G(J(2))=0 ---> S2
+                        @cont: SET D(J(0))=0, F(J(1))=0, G(J(2))=0 ---> S3
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\
+\\Session Timeout Timer\\
+\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.11,
+
+S1,
+
+0.01": SET A(^PRTimeout) = 360000 ---> S2
+
+S2,
+
+#START: ---> S3
+
+S3,
+
+
+#Z^Z_STOReset: SET T(^STOTimer) = 0; IF R=27 [@End_of_array, @cont]
+		@end: Z^Z_Stop ---> S4
+		@cont: ---> SX
+
+0.01": ADD T(^STOTimer); IF T(^STOTimer) >= A(^PRTimeout) [@end, @cont]
+			@end: Z^Z_Stop ---> S4
+			@cont: ---> SX
+
+S4,
+
+5": ---> SX
+
+
+
+
