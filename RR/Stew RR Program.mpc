@@ -1,0 +1,337 @@
+\\ Dr. Stewart Clark Random Ratio Program
+\\ Programmed by Mike Kausch
+\\ May 1st, 2015
+\\ Feature Highlights:
+\\ Random Ratio (With replacement)
+
+
+
+\\Inputs
+^LeftLeverRsp = 1
+^LeftLeverON = 2
+^RightLeverRsp = 3
+^RightLeverON = 4
+^PelletPoke = 5
+^NosePoke = 6
+
+\\Outputs
+^LeftLeverOut = 1
+^RightLeverOut = 2
+^PelletDSP = 3
+^LLite = 4
+^RLite = 5
+^Water = 6
+^HLite = 7
+^BSonalert = 8
+^FSonalert = 9
+^NPLite = 10
+^Pump = 11
+
+
+
+\\Variables
+\A Array - Program Variables
+^SessionDuration = 0 \ centiseconds
+^Phase = 1 \ 1 = phase 1, 2 = phase 2 training, 3 = phase 2 testing
+^ActLever = 2 \ 1 = left 2 = right; OTHER VALUES WILL PRODUCE AN ERROR AT START OF PROGRAM
+^TimeOutDuration = 3 \ LENGTH OF TIME OF THE TIMEOUT PERIOD FOLLOWING PRESENTATION OF A REWARD
+^MaxTrials = 4 \ MAXIMUM NUMBER OF TRIALS; (EG) IF SET AT 24 THEN ENDS AFTER 24 IS COMPLETED
+^RewardDuration = 5 \ DURATION THAT REWARD IS TURNED ON FOR
+^HLiteActive = 6 \ 1=yes 0=no; HLITE TURNED ON WHEN SESSION START AND IS ON THROUGH THE DURATION
+
+
+\B Array - Data
+^SessionEnd = 0 \ time that session ends
+^ActRsp		= 1
+^InactRsp	= 2
+^LeftRsp	= 3
+^RightRsp	= 4
+^ActTORsp	= 5
+^InactTORsp	= 6
+^LatencyMean	= 7
+^RspLatencyMean	= 8
+
+
+
+
+\C Array - IRT Array
+\D Array - Random Ratio Array
+\E - error variable
+\F Array - 
+\G Array - 
+\H
+\I - IRT Counter
+\J - Trial Counter
+\K - Random Ratio Value
+\L - Response Counter
+\M - 
+\N - Reward Latency Array
+\O - Reward Latency Array Counter
+\P - 1st Response Latency Array
+\Q - 1st Response Latency Array Counter
+\R
+\S
+\T - Timer  Array
+^SessionTimer = 0
+^TimeOutTimer = 1
+^RewardTimer = 2
+^RspLatencyTimer = 3
+\U
+\V
+\W
+\X
+\Y
+\Z-Signals
+^Z_Stop = 1
+^Z_Reward = 2
+^Z_LatencyOver = 3
+^Z_RspLatency	= 4
+
+
+DIM A = 11
+
+
+
+
+S.S.1,  \\  session clock
+
+S1,
+
+
+
+0.01": ---> S2
+
+S2,
+
+#START: IF A(^HLiteActive) = 0 [@HLiteOff, @cont]
+		@HliteOff: ---> S3
+		@cont: IF A(^HLiteActive) = 1 [@HLiteOn, @error]
+			@HLiteOn: ON HLite ---> S3
+			@Error: SET E=1.20; SHOW 1,ERROR,E ---> STOPABORTFLUSH
+
+S3,
+
+#Z^Z_Stop: SET B(^SessionEnd)=T(^SessionTimer) ---> S4
+0.01": ADD T(^Sessiontimer); IF T(^Sessiontimer) >= A(^SessionDuration) [@end, @cont]
+	@end: Z^Z_End; ---> S4
+	@cont: ---> SX
+
+S4,
+
+7": ---> STOPABORTFLUSH
+
+
+
+
+S.S.2,  \\Lever and phase control
+
+S1,
+
+0.01": ---> S2
+
+S2,		\\ PHASE AND LEVER DETERMINATION
+
+#START:ADD J; RANDI K = D; IF A(^Phase) = 1 [@phase1, @cont]
+	@Phase1: ON 1,2; IF A(^ActLever) = 1 [@bothleft, @cont]
+			@bothleft: ---> S3
+			@cont: IF A(^ActLever) = 2 [@bothright, @error]
+				@bothright: ---> S5
+				@error: SET E = 2.10; SHOW 1,ERROR,E ---> STOPABORTFLUSH
+	@cont: IF A(^Phase)= 2 [@phase2, @cont]
+		@Phase2: IF A(^ActLever) = 1 [@left, @cont]
+			@left: ON 1 ---> S(unk)
+			@cont: IF A(^ActLever) = 2 [@right, @error]
+				@right: ON 2 ---> S(unk)
+				@error:	SET E = 2.11; SHOW 1,ERROR,E ---> STOPABORTFLUSH	
+		@cont: IF A(^Phase)= 3 [@phase3, @error]
+			@Phase3: ON 1,2 ---> S(unk)
+			@error: SET E = 2.12; SHOW 1,Error,E ---> STOPABORTFLUSH 
+
+
+S3, \\ phase 1 pretraining Left Act
+
+#Z^Z_Stop: OFF 1,2; SET B(^SessionEnd)=T(^SessionTimer) ---> sEND
+#R^LeftLeverRsp: ADD B(^ActRsp), B(^LeftRsp), L; IF L>=K [@Reward, @cont]
+		@Reward: Z^Z_Reward; ON ^LLite; SET L=0; RANDI K=D ---> S4
+		@Cont: ---> SX
+
+
+#R^RightLeverRsp: ADD B(^InactRsp), B(^RightRsp) ---> SX
+
+
+
+S4,  \\ Phase 1 Pretraining Left Act timeout
+
+#Z^Z_Stop: OFF 1,2; SET B(^SessionEnd)=T(^SessionTimer) ---> sEND
+0.01": ADD T(^TimeOutTimer); IF T(^TimeOutTimer) >= A(^TimeOutDuration) [@EndTO, @cont]
+		@EndTO: SET T(^TimeOutTimer) = 0; OFF ^LLite; ADD J; Z^Z_LatencyOver; IF J>A(^MaxTrials) [@End, @cont]
+				@End: ---> sEND
+				@Cont: ---> S3
+		@Cont: ---> SX
+#R^LeftLeverRsp: ADD B(^ActTORsp), B(^LeftRsp) ---> SX
+#R^RightLeverRsp: ADD B(^InactTORsp), B(^RightRsp) ---> SX
+
+
+S5, \\ phase 1 pretraining Right Act
+
+#Z^Z_Stop: OFF 1,2; SET B(^SessionEnd)=T(^SessionTimer) ---> sEND
+#R^RightLeverRsp: ADD B(^ActRsp), B(^RightRsp), L; IF L>=K [@Reward, @cont]
+		@Reward: Z^Z_Reward; ON ^RLite; SET L=0; RANDI K=D ---> S6
+		@Cont: ---> SX
+
+
+#R^LeftLeverRsp: ADD B(^InactRsp), B(^LeftRsp) ---> SX
+
+
+
+S6,  \\ Phase 1 Pretraining Right Act timeout
+
+#Z^Z_Stop: OFF 1,2; SET B(^SessionEnd)=T(^SessionTimer) ---> sEND
+0.01": ADD T(^TimeOutTimer); IF T(^TimeOutTimer) >= A(^TimeOutDuration) [@EndTO, @cont]
+		@EndTO: SET T(^TimeOutTimer) = 0; OFF ^RLite; ADD J; Z^Z_LatencyOver; IF J>A(^MaxTrials) [@End, @cont]
+				@End: ---> sEND
+				@Cont: ---> S5
+		@Cont: ---> SX
+#R^LeftLeverRsp: ADD B(^InactTORsp), B(^LeftRsp) ---> SX
+#R^RightLeverRsp: ADD B(^ActTORsp), B(^RightRsp) ---> SX
+
+
+sEND,
+7":---> STOPABORTFLUSH
+
+
+
+
+
+S.S.3, \\ Reward Behavior 
+
+
+
+
+S1,
+
+0.01": ---> S2
+
+S2,
+
+#Z^Z_End: ---> S4
+#Z^Z_Reward: ON ^PelletDSP ---> S3
+
+S3,
+
+#Z^Z_End: ---> S4
+0.01": ADD T(^RewardTimer); IF A(^RewardDuration) >= T(^RewardTimer) [@EndReward, @Cont]
+			@EndReward: OFF ^PelletDSP; SET T(^RewardTimer) = 0 ---> S2
+			@Cont: ---> SX
+
+S4,
+
+7": ---> SX
+
+
+
+
+
+S.S.4,   \\ 1st Response Latency P(Q)
+
+
+
+
+
+S1,
+
+
+#Start: IF A(^ActLever) = 1 [@bothleft, @cont]
+			@bothleft: ---> S2
+			@cont: IF A(^ActLever) = 2 [@bothright, @error]
+				@bothright: ---> S4
+				@error: ---> SX
+
+S2,
+
+#Z^Z_End: ---> S6
+#R^LeftLeverRsp: SET P(Q) = T(^RspLatencyTimer), T(^RspLatencyTimer) = 0; ADD Q; SET P(Q) = -987.987 ---> S3
+0.01": ADD T(^RspLatencyTimer) ---> SX
+
+S3,
+
+#Z^Z_End:  ---> S6
+#Z^Z_RspLatency: ---> S2
+
+S4,
+
+#Z^Z_End: ---> S6
+#R^RightLeverRsp: SET P(Q) = T(^RspLatencyTimer), T(^RspLatencyTimer) = 0; ADD Q; SET P(Q) = -987.987 ---> S5
+0.01": ADD T(^RspLatencyTimer) ---> SX
+
+S5,
+
+#Z^Z_End:  ---> S6
+#Z^Z_RspLatency: ---> S4
+
+
+S6,
+
+7": ARITHMETICMEAN B(RspLatencyMean)=P,0,Q ---> SX
+
+
+
+
+
+
+S.S.5, \\ Reward Latency N(O)
+
+
+
+
+
+S1,
+
+#Start: ---> S2
+
+S2,
+
+#Z^Z_End: ---> S5
+#Z^Z_Reward: ---> S3
+
+S3,
+
+#Z^Z_End: SET N(O) = T(^RewardLatencyTimer) ---> S5
+#Z^Z_LatencyOver: SET N(O) = T(^RewardLatencyTimer); SET T(^RewardLatencyTimer) = 0; ADD O; SET N(O) = -987.987; Z^Z_RspLatency ---> S2
+#R^PelletPoke: SET N(O) = T(^RewardLatencyTimer); SET T(^RewardLatencyTimer) = 0; ADD O; SET N(O) = -987.987; Z^Z_RspLatency ---> S2
+0.01": ADD T(^RewardLatencyTimer) ---> SX
+
+
+S5,
+
+0.01": ARITHMETICMEAN B(^LatencyMean)=N,0,O ---> S6
+
+S6,
+
+7": ---> SX
+
+
+
+S.S.6, \\  IRT Array By Trial
+
+
+S1,
+
+#Start: SET C(I) = J; ADD I ---> S2
+
+S2,
+
+
+#R^LeftLeverRsp: SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -1; ADD I; SET C(I) = -987.987 ---> SX				\\ time of left response
+#R^RightLeverRsp: SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -2; ADD I; SET C(I) = -987.987 ---> SX				\\  right response
+#Z^Z_Reward: SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -8; ADD I; SET C(I) = -987.987  ---> SX				\\ reward issued
+#Z^Z_RspLatency: SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -9; ADD I; SET C(I) = -987.987  ---> SX  			\\ Reward Collected
+#Z^Z_LatencyOver: SET C(I) = J; ADD I; SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -9; ADD I; SET C(I) = -987.987  ---> SX   \\ time that trial starts, trial mark
+
+
+
+
+
+
+
+ 
