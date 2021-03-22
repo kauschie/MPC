@@ -1,0 +1,132 @@
+\\ Habituation Program
+\\ Started 12-16-2015
+\\ By Michael A. Kausch
+\\ Features:- Dark Box recording nose poke behavior
+\\          - Bins Data
+
+
+\\Inputs
+^LeftPoke = 1
+^RightPoke = 2
+^MiddlePoke = 3
+
+\\Outputs
+^LStimLight = 1
+^RStimLight = 2
+^HouseLight = 3
+^Pump = 4
+^Sonalert = 5
+^Red = 6
+^Yellow = 7
+^Green  = 8
+
+
+\A  Settings
+^SessionDuration = 0
+^BinDuration = 1
+\B  Data
+^LeftPokes  = 0
+^RightPokes = 1
+\C   IRT Array
+\D
+\E
+\F
+\G
+\H
+\I  C Array Counter
+\J
+\K
+\L
+\M
+\N
+\O
+\P Left Poke Bin Array
+\Q Right Poke Bin Array
+\R
+\S Bin Array Counter
+\T  T(0) is the session Clock
+^SessionTimer = 0
+^BinTimer = 1
+\U
+\V
+\W
+\X
+\Y
+\Z
+
+DIM A = 1
+DIM B = 1
+DIM C = 10000
+DIM P = 1000
+DIM T = 1
+DIM Q = 1000
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\ Session Clock  \\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.1,
+
+S1,\\ Wait for macro to initialize variables
+
+#Start: ---> S2
+
+S2,
+
+0.01": ADD T(^SessionTimer); IF T(^SessionTimer) >= A(^SessionDuration) []---> S3
+
+S3,
+
+3": ---> STOPABORTFLUSH
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\ Left Poke \\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.2,
+
+S1,
+
+#R(^LeftPoke): ADD B(^LeftPokes), P(S); SET C(I)=-1; ADD I; SET C(I)=T(^SessionTimer); ADD I; SET C(I)=-987.987 ---> SX
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\ Right Poke \\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.3,
+
+S1,
+
+#R(^RightPoke): ADD B(^RightPokes), Q(S); SET C(I)=-2; ADD I; SET C(I)=T(^SessionTimer); ADD I; SET C(I)=-987.987  ---> SX
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\ BIN CTRL \\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.4,
+
+S1,
+
+#Start: IF A(^BinDuration) > 0 [@calcbins, @nobin]
+            @calcbins: SET P(S+1)=-987.987, Q(S+1)=-987.987---> S2
+            @nobins: SET P(S)=-987.987, Q(S)=-987.987---> SX
+
+S2,
+
+ 0.01": ADD T(^BinTimer); IF T(^BinTimer)>=A(^BinDuration) [@T]
+                 @T: ADD S; SET T(^BinTimer)=0, P(S)=0, P(S+1)=-987.987, Q(S)=0, Q(S+1)=-987.987 ---> S2
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\ SHOW COMMANDS \\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.5,
+
+S1,
+
+0.01": SHOW 1,Left Pokes,B(0), 2,Right Pokes,B(1), 3,Time Remaining,(A(^SessionDuration)-T(^SessionTimer));
+        SHOW 6,Left Bin Pokes,P(S), 7,Right Bin Pokes, Q(S), 8,Bin Counter,T(1)---> SX
+
