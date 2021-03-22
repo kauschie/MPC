@@ -3,10 +3,11 @@
 \\ April 10th, 2012
 \\ Revised May 7, 2012
 \\ Revision Notes:
+\\ V8
+\\  - changed sonalert to output 6 (probably because a box has a bad output)
+\\  - added ability to have sonalert and stim light both presented
 \\ V7 
 \\ -added sonalert cue and a macro variable to select between cues
-\\ -changed bin variables back to previous for some reason?
-\\      |_need to test to see if it's still functionality
 \\ 
 \\ V6
 \\ -fixed binning of data
@@ -35,8 +36,8 @@
 ^RStimLight = 2
 ^HouseLight = 3
 ^Pump = 4
-^Sonalert = 5
-^Red = 6
+^Sonalert = 6
+\^Red = 6
 ^Yellow = 7
 ^Green  = 8
 
@@ -233,9 +234,11 @@ S.S.5,
 S1,
 
 #START: IF A(^LightDuration)>0 [@notzero]
-    @notzero: IF A(^CueType) = 1 [@stimlight, @sonalert] 
+    @notzero: IF A(^CueType) = 1 [@stimlight, @next] 
 				@stimlight: ---> S2
-				@sonalert: IF A(^CueType) = 2 [] ---> S4
+				@next: IF A(^CueType) = 2 [@sonalert, @both] 
+					@sonalert: ---> S4
+					@both: IF A(^CueType) = 3 [] ---> S6
 
 S2,
 
@@ -257,6 +260,15 @@ S5,
     @Off: OFF ^Sonalert; SET T(^StimLightTimer)=0 ---> S4
     @cont: ---> SX	
 	
+S6,
+
+#Z^Z_Reward: ON ^Sonalert, A(^ActivePoke) ---> S7
+
+S7,
+
+0.01": ADD T(^StimLightTimer); IF T(^StimLightTimer) >= A(^LightDuration) [@Off, @cont]
+    @Off: OFF ^Sonalert, A(^ActivePoke); SET T(^StimLightTimer)=0 ---> S6
+    @cont: ---> SX	
 	
 \\\\\\\\\\\\\\\\\\\\\\\\\
 \\\Syringe Pump Control\\\
