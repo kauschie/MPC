@@ -1,8 +1,10 @@
-\\ Habituation Program
+\\ Habituation Program V2
 \\ Started 12-16-2015
 \\ By Michael A. Kausch
 \\ Features:- Dark Box recording nose poke behavior
 \\          - Bins Data
+\\ V2         
+\\	    - Fixed response counting before session start
 
 
 \\Inputs
@@ -88,6 +90,10 @@ S.S.2,
 
 S1,
 
+#Start: ---> S2
+
+S2,
+
 #R(^LeftPoke): ADD B(^LeftPokes), P(S); SET C(I)=-1; ADD I; SET C(I)=T(^SessionTimer); ADD I; SET C(I)=-987.987 ---> SX
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -97,6 +103,10 @@ S1,
 S.S.3,
 
 S1,
+
+#Start: ---> S2
+
+S2,
 
 #R(^RightPoke): ADD B(^RightPokes), Q(S); SET C(I)=-2; ADD I; SET C(I)=T(^SessionTimer); ADD I; SET C(I)=-987.987  ---> SX
 
