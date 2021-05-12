@@ -2,6 +2,9 @@
 \\ Started 12-15-2015
 \\ By Michael A. Kausch
 \\ Features: VI Schedule of Reinforcement on Fleshler-Hoffman Progression
+\\ made every stimulus' chance at operating more random
+\\ Reward type is selected at random from G array
+\\ Reward time is selected at random from N array
 
 
 \\Inputs
@@ -43,6 +46,15 @@
 \H
 \I   C Array Counter
 \J   Current Reward Type
+^RandGreen              = 0
+^RandRed                = 1
+^RandYellow             = 2
+^RandHLite              = 3
+^RandLStimLight         = 4
+^RandRStimLight         = 5
+^RandSelectSonalert     = 6
+^SonalertActive         = 7
+
 \K   VI Array
 \L   Variable Reward Timer
 ^LRed     = 0
@@ -50,23 +62,28 @@
 ^LGreen   = 2
 ^LHouse   = 3
 ^LSLRT    = 4
+^LLSL = 5
+^LRSL = 6
+
 \M
 \N   Variable Reward Timer Array
-\O
+\O  sonalert bool for 50%
 \P  Act Rsp Bin
 \Q  Inact Rsp Bin
 \R  Reward Bin
 \S  Bin Counter
 \T
 ^SessionTimer  = 0
-^VITimer       = 1
-^RTimer        = 2
-^YTimer        = 3
-^GTimer        = 4
-^HLTimer       = 5
-^TSLRT1         = 6
-^TSLRT2         = 7
+^VITimer       = 1      \\ Variable Interval Timer
+^RTimer        = 2      \\ Red Timer
+^YTimer        = 3      \\ Yellow Timer
+^GTimer        = 4      \\ Green Timer
+^HLTimer       = 5      \\ House Light Timer
+^TSLRT1         = 6     \\ Timer SonaLeRT 1
+^TSLRT2         = 7     \\ Timer SonaLeRT 2
 ^BinTimer       = 8
+^TLSL           = 9     \\ Timer Left Stim Light
+^TRSL           = 10    \\ Timer Right Stim Light
 
 \U
 \V
@@ -81,8 +98,9 @@
 DIM A=6
 DIM C=10000
 DIM B=2
-DIM L=4
-DIM T=8
+DIM L=6
+DIM J=7
+DIM T=10
 DIM P=1000
 DIM Q=1000
 DIM R=1000
@@ -90,8 +108,9 @@ DIM R=1000
 
 
 LIST K = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
-LIST G = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
+LIST G = 0, 1, 2,3,4,5
 LIST N = 100,200,300,400,500
+LIST O = 0, 1
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 \\\\\\\\\ Session Clock  \\\\\\\\\\\\\\\\\\
@@ -115,6 +134,12 @@ S3,
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\ VI Control \\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\ initializes K array to a progression defined by the hoffman-flescler
+\\ constant probability distribution with A(^VIMean) being the mean value of the array
+\\ randomly (without replacement) selects a time from K array and sets it equal to D
+\\ VI timer then checks if the interval has reached D, the random time
+\\ SS loops and reselects a new random time D
+\\ No control in this SS regarding ending the program
 
 S.S.2,
 
@@ -124,12 +149,15 @@ S1,
 
 S2,
 
-#Start: INITCONSTPROBARR K,A(^VIMean); RANDD D = K; RANDD J = G; SET C(I)=-5; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987   ---> S3
+
+
+#Start: INITCONSTPROBARR K,A(^VIMean); RANDD D = K; SET C(I)=-5; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987   ---> S3
 
 S3,
 
 0.01": ADD T(^VITimer); IF T(^VITimer) >= D  [@VIOver]
                 @VIOver: SET T(^VITimer)=0; RANDD D = K ---> S4
+
 
 S4,
 
@@ -137,7 +165,7 @@ S4,
 
 S5,
 
-#Z^Z_VIStart: RANDD D = K; RANDD J = G; SET C(I)=-5; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987    ---> S3
+#Z^Z_VIStart: RANDD D = K; SET C(I)=-5; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987    ---> S3
 
 
 
@@ -169,48 +197,53 @@ S3,
 #R(^RightPoke): ADD B(^ActivePokes), P(S); SET C(I)=-2; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987    ---> SX
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\\\\\\\\\\\\ Red Light \\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\ Red Light NEW \\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 S.S.4,
 
 S1,
 
-#Z^Z_Reward: IF (J = 1) OR (J = 6) OR (J = 10) OR (J = 13) OR (J = 14) OR (J = 17) [ON ^Red; RANDI L(^LRed) = N] ---> S2
+#Z^Z_Reward: RANDI J(1)=G; IF J(1) = 1 [ON ^Red; RANDI L(^LRed) = N] ---> S2
 
 S2,
 
+#Z^Z_VIStart: SET T(^RTimer)=0; OFF ^Red ---> S1
 0.01": ADD T(^RTimer); IF T(^RTimer) >= L(^LRed) [SET T(^RTimer)=0; OFF ^Red; Z^Z_VIStart] ---> S1
 
 
 
 
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\\\\\\\\\\\ Yellow Light \\\\\\\\\\\\\\\\
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\ Yellow Light NEW \\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 S.S.5,
 
 S1,
 
-#Z^Z_Reward: IF (J = 2) OR (J = 7) OR (J = 11) OR (J = 13) OR (J = 15) OR (J = 18) [ON ^Yellow; RANDI L(^LYellow) = N] ---> S2
+#Z^Z_Reward: RANDI J(2)=G; IF J(2) = 1 [ON ^Yellow; RANDI L(^LYellow) = N] ---> S2
 
 S2,
 
+#Z^Z_VIStart: SET T(^YTimer)=0; OFF ^Yellow ---> S1
 0.01": ADD T(^YTimer); IF T(^YTimer) >= L(^LYellow) [SET T(^YTimer)=0; OFF ^Yellow; Z^Z_VIStart] ---> S1
 
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\\\\\\\\\\\\ Green Light \\\\\\\\\\\\\\\\
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\ Green Light NEW\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 S.S.6,
 
 S1,
 
-#Z^Z_Reward: IF (J = 3) OR (J = 8) OR (J = 12) OR (J = 14) OR (J = 15) OR (J = 19) [ON ^Green; RANDI L(^LGreen) = N] ---> S2
+#Z^Z_Reward: RANDI J(0)=G; IF J(0) = 1 [ON ^Green; RANDI L(^LGreen) = N] ---> S2
 
 S2,
 
+#Z^Z_VIStart: SET T(^GTimer)=0; OFF ^Green ---> S1
 0.01": ADD T(^GTimer); IF T(^GTimer) >= L(^LGreen) [SET T(^GTimer)=0; OFF ^Green; Z^Z_VIStart] ---> S1
 
 
@@ -223,54 +256,93 @@ S.S.7,
 
 S1,
 
-#Z^Z_Reward: IF (J = 4) OR (J = 9) OR (J = 10) OR (J = 11) OR (J = 12) OR (J = 19) [ON ^HouseLight; RANDI L(^LHouse) = N] ---> S2
+#Z^Z_Reward: RANDI J(3)=G; IF J(3) = 1 [ON ^HouseLight; RANDI L(^LHouse) = N] ---> S2
 
 S2,
 
+#Z^Z_VIStart: SET T(^HLTimer)=0; OFF ^HouseLight ---> S1
 0.01": ADD T(^HLTimer); IF T(^HLTimer) >= L(^LHouse) [SET T(^HLTimer)=0; OFF ^HouseLight; Z^Z_VIStart] ---> S1
 
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\\\\\\\\\Sonalert 1 - SOLID\\\\\\\\\\\\\\
+\\\\\\\\\\Sonalert Control\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 S.S.8,
 
 S1,
 
-#Z^Z_Reward: IF (J = 5) OR (J = 6) OR (J = 7) OR (J = 8) OR (J = 9) [ON ^Sonalert; RANDI L(^LSLRT) = N] ---> S2
+\\ After Z_reward signal is issued, program checks if 
+
+#Z^Z_Reward: RANDI J(7)=G; IF J(7) = 1 [@ON, @OFF]
+              @ON: RANDI J(6)=O; IF J(6) >= 1 [@SONALERT1, @SONALERT2]
+                      @SONALERT1: ON ^Sonalert; RANDI L(^LSLRT) = N ---> S3
+                      @SONALERT2: ON ^Sonalert ---> S4
+              @OFF: ---> S2
+
 
 S2,
 
+#Z^Z_VIStart: ---> S1
+
+
+S3,
+
 0.01": ADD T(^TSLRT1); IF T(^TSLRT1) >= L(^LSLRT) [OFF ^Sonalert; SET T(^TSLRT1)=0; Z^Z_VIStart] ---> S1
+
+S4,
+
+#Z^Z_VIStart: OFF ^Sonalert; SET T(^TSLRT1)=0 ---> S1
+0.01": ADD T(^TSLRT2); IF T(^TSLRT2) >= A(^SLRT2ON) [OFF ^Sonalert; SET T(^TSLRT2)=0] ---> S5
+
+S5,
+
+#Z^Z_VIStart: OFF ^Sonalert; SET T(^TSLRT1)=0 ---> S1
+0.01": ADD T(^TSLRT2); IF T(^TSLRT2) >= A(^SLRT2OFF) [@T]
+        @T: SET T(^TSLRT2)=0; ADD X; IF X<= A(^SLRT2CYC)[@T, @F]
+                                        @T: ON ^Sonalert ---> S4
+                                        @F: SET X=0; Z^Z_VIStart ---> S1
 
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\\\\\\\\\\\\ Sonalert 2 \\\\\\\\\\\\\\\\\
+\\\\\\\\\\Left Stimulus Light\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 S.S.9,
 
 S1,
 
-#Z^Z_Reward: IF (J = 16) OR (J = 17) OR (J = 18) OR (J = 19) OR (J = 20) [ON ^Sonalert] ---> S2
+#Z^Z_Reward: RANDI J(4)=G; IF J(4) = 1 [ON ^LStimLight; RANDI L(^LLSL) = N] ---> S2
 
 S2,
 
-0.01": ADD T(^TSLRT2); IF T(^TSLRT2) >= A(^SLRT2ON) [OFF ^Sonalert; SET T(^TSLRT2)=0] ---> S3
+#Z^Z_VIStart: SET T(^TLSL)=0; OFF ^LStimLight ---> S1
+0.01": ADD T(^TLSL); IF T(^TLSL) >= L(^LLSL) [SET T(^TLSL)=0; OFF ^LStimLight; Z^Z_VIStart] ---> S1
 
-S3,
 
-0.01": ADD T(^TSLRT2); IF T(^TSLRT2) >= A(^SLRT2OFF) [@T]
-        @T: SET T(^TSLRT2)=0; ADD X; IF X<= A(^SLRT2CYC)[@T, @F]
-                                        @T: ON ^Sonalert ---> S2
-                                        @F: SET X=0; Z^Z_VIStart ---> S1
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\Right Stimulus Light\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.10,
+
+S1,
+
+#Z^Z_Reward: RANDI J(5)=G; IF J(5) = 1 [ON ^RStimLight; RANDI L(^LRSL) = N] ---> S2
+
+S2,
+
+#Z^Z_VIStart: SET T(^TRSL)=0; OFF ^RStimLight ---> S1
+0.01": ADD T(^TRSL); IF T(^TRSL) >= L(^LRSL) [SET T(^TRSL)=0; OFF ^RStimLight; Z^Z_VIStart] ---> S1
+
+
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\ BIN CTRL \\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
-S.S.10,
+S.S.11,
 
 S1,
 
@@ -288,9 +360,29 @@ S2,
 \\\\\\\\\\\\\ SHOW COMMANDS \\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
-S.S.11,
+S.S.12,
 
 S1,
 
-0.01": SHOW 1,VI TIMER,T(^VITimer), 2,VI,D, 3,Active Pokes,B(^ActivePokes), 4,Rewards,B(^Rewards), 5,Time Remaining,(A(^SessionDuration)-T(^SessionTimer)); SHOW 6,Inactive Pokes,B(^InactivePokes)---> SX
+0.01":     SHOW 1,VI TIMER,T(^VITimer), 2,VI,D, 3,Active Pokes,B(^ActivePokes), 4,Rewards,B(^Rewards), 5,Time Remaining,(A(^SessionDuration)-T(^SessionTimer));
+        SHOW 6,Inactive Pokes,B(^InactivePokes);
+        SHOW 11,Green,J(0), 12,Red,J(1), 13,Yellow,J(2), 14,House Light,J(3), 15,L Stim Light,J(4);
+        SHOW 16,R Stim Light,J(5), 17,Sonalert Active?,J(7), 18,Solid or Beep,J(6) ---> SX
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\ NULL REWARD\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.13,
+
+
+S1,
+
+#Z^Z_Reward: ---> S2
+
+S2,
+
+#Z^Z_VIStart: ---> S1
+5": Z^Z_VIStart ---> S1
 
