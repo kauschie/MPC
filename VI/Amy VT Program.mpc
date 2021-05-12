@@ -253,10 +253,8 @@ S4, \\ begin recording responses while cues have been issued
 S.S.4,
 
 \\ checks to see if sonalert or stimlite are active in the macro, if so the stateset advances to S2 where it will be looking for the Z_Reward Z-signal
-\\ Sonalert is then timed with its own T(^Sonalert) Timer
+\\ turns rewards on based on current setting of A(^CueType)
 \\ Issues a VI_Start Z-signal after the completion of the stimulus light
-\\ if both sonalert and stimulus light are active, two z signals will be sent
-\\ however, S.S.2, S4, is only capable of responding to one z signal so it will be fine
 
 
 S1,
@@ -278,33 +276,7 @@ S2,
 S3,
 
 0.01": ADD T(^CueTimer); IF T(^CueTimer) >= A(^CueDuration) [@end]
-                                    @end: OFF ^Sonalert; SET T(^CueTimer)=0; Z^Z_VIStart ---> S2                                                                                          
-
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\\\\\\\\\Stimulus Light\\\\\\\\\
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-
-
-
-S.S.5,
-
-
-// checks if the macro selected stimulus light 
-
-S1,
-
-#START: IF A(^CueType) = 2 [@yes, @next]
-        @yes: ---> S2
-        @next: IF A(^CueType) = 3 [] ---> S2
-
-S2,
-
-#Z^Z_Reward: ON A(^ActivePoke) ---> S3
-
-S3,
-
-0.01": ADD T(^CueTimer); IF T(^CueTimer) >= A(^CueDuration) [@end]
-                @end: OFF A(^ActivePoke); SET T(^CueTimer)=0; Z^Z_VIStart ---> S2                                                                                      
+                                    @end: OFF ^Sonalert; SET T(^CueTimer)=0; Z^Z_VIStart ---> S2                                                                                                                                                                        
 
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -313,9 +285,8 @@ S3,
 
 \\ The Pump will always be active in this program
 \\ if A(^CueType) is set to 0, it will send the z signal after the pump duration
-\\ Pump durations are usually very short (< 1sec) so it will yield sending VIStart Z signal
-\\ to the stim light or sonalert state sets 
-\\ Otherwise, it will wait until the cu
+\\ Pump durations are usually very short (< 1sec) so it will yield sending VIStart Z signal to the cue control 
+\\ unless the stim lite and sonalert are both deactivated
 
 S.S.6,
 
