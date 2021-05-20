@@ -96,6 +96,8 @@
 ^Z_Reward = 2
 ^Z_VIStart = 3
 \^Z_TimeOut = 4
+^Z_aPoke       = 5
+^Z_iPoke       = 6
 
 
 DIM A=6
@@ -109,6 +111,7 @@ DIM L=1000
 DIM M=1000
 DIM U=1000
 DIM V=1000
+DIM W=1
 
 
 
@@ -181,9 +184,9 @@ S4, \\ wait for rewards to finish. Once it receives a VIStart Z-signal it starts
 
 
 
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\\\\\\\\\\ Nose Poke CTRL \\\\\\\\\\\\\\\
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\ Phase CTRL \\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 
 S.S.3,
@@ -214,43 +217,17 @@ S1,
     @countdown: SET G(0) = D-A(^CueDuration), G(1)=A(^CueDuration) ---> S2
 
 S2,
-
 #Z^Z_End: ---> S5
-#RA(^ActivePoke): ADD W(1); IF W(1) >= 2 [@BeamBreak, @NoBeamBreak]
-        @BeamBreak: ADD B(^ActTotal); SET C(I)=-8, W(1) = 0; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> S6
-        @NoBreamBreak: ---> SX
-#RA(^InactivePoke): ADD W(2); IF W(2) >=2 [@BeamBreak, @NoBeamBreak]
-        @BeamBreak: ADD B(^InactTotal); SET C(I)=-9, W(2) = 0; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> S6
-        @NoBeamBreak: ---> SX
+#Z^Z_aPoke: ADD B(^ActTotal); SET C(I)=-8; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> SX
+#Z^Z_iPoke: ADD B(^InactTotal); SET C(I)=-9; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> SX
 0.01": ADD T(^BQTimer); IF T(^BQTimer)>= G(0) [SET T(^BQTimer) = 0, G(0)=0] ---> S3
-
-S6,     \\      poke "catch" for S2 that is waiting for the rat to remove his head
-
-#Z^Z_End: ---> S5
-#RA(^ActivePoke): ---> S6
-#RA(^InactivePoke): ---> S6
-
-0.01": ADD T(^BQTimer), W(2); IF W(2) >= 2 [@NoBeamBreak, @BeamStillBroke]
-        @NoBeamBreak: SET W(2) = 0 ---> S2
-        @BeamStillBroke: IF T(^BQTimer)>= G(0) [SET T(^BQTimer) = 0, G(0)=0] ---> S7    // sends to S7 instead bc his nose is in the hole still
 
 S3, \\ begin recording responses [cue duration] before reward issued (or as soon as vi is decided in the event that it's less than 10 seconds)
 
 #Z^Z_End: ---> S5
 #Z^Z_Reward: ---> S4
-#RA(^ActivePoke): ADD B(^ActTotal), B(^ActB4Cue), P(S); ARITHMETICMEAN P(0)=P,1,S; SET C(I)=-1; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> SX
-#RA(^InactivePoke): ADD B(^InactTotal), B(^InactB4Cue), Q(S); ARITHMETICM
-
-S7, 
-
-\\ Poke "catch" for S3 that is waiting for the rat to remove his head from the nose poke hole
-
-0.02": ---> S3
-#Z^Z_End: ---> S5
-#Z^Z_Reward: ---> S4
-#RA(^ActivePoke): ---> S7
-#RA(^InactivePoke): ---> S7
-
+#Z^Z_aPoke: ADD B(^ActTotal), B(^ActB4Cue), P(S); ARITHMETICMEAN P(0)=P,1,S; SET C(I)=-1; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> SX
+#Z^Z_iPoke: ADD B(^InactTotal), B(^InactB4Cue), Q(S); ARITHMETICMEAN Q(0)=Q,1,S; SET C(I)=-2; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> SX
 
 S4, \\ begin recording responses while cues have been issued
 
@@ -260,32 +237,34 @@ S4, \\ begin recording responses while cues have been issued
                                     IF D-A(^CueDuration)<0 [@skipcountdown, @countdownuntilrecording]
                                                         @skip: SET G(1) = D ---> S3
                                                         @countdown: SET G(0) = D-A(^CueDuration), G(1)=A(^CueDuration) ---> S2
-#RA(^ActivePoke): ADD W(1); IF W(1) >= 2 [@NosePoke]
-        @NosePoke: ADD B(^ActTotal), B(^ActCue), L(S); ARITHMETICMEAN L(0)=L,1,S; SET C(I)=-6, W(1) = 0; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> S8
-#RA(^InactivePoke): ADD W(2); IF W(2) >=2 [@NosePoke]
-        @NosePoke: ADD B(^InactTotal), B(^InactCue), M(S); ARITHMETICMEAN M(0)=M,1,S; SET C(I)=-7, W(2) = 0; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> S8
-
-
-S8,
-
-0.02": ---> S4
-#Z^Z_End: ---> S5
-#RA(^ActivePoke): ---> S8
-#RA(^InactivePoke): ---> S8
-
+#Z^Z_aPoke: ADD B(^ActTotal), B(^ActCue), L(S); ARITHMETICMEAN L(0)=L,1,S; SET C(I)=-6; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> SX
+#Z^Z_iPoke: ADD B(^InactTotal), B(^InactCue), M(S); ARITHMETICMEAN M(0)=M,1,S; SET C(I)=-7; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> SX
 
 \S5,
 
 \0.01":  SET U(S)=P(S)/G(1), V(S)=L(S)/G(1); ARITHMETICMEAN U(0)=U,1,S, V(0),V,1,S ---> SX
 
 
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\\\\\\\\\\\\\\\ Left Nose Poke CTRL \\\\\\\\\\\\\\\
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\ Level Nose Poke CTRL \\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
+S.S.5,
 
+S1,
 
+#Start: ---> S2
 
+S2,
+
+#RA(^ActivePoke): ADD W(0); IF W(0) > 2 [SET W(0) = 0; Z^Z_aPoke] ---> S3
+#RA(^InactivePoke): ADD W(1); IF W(1) > 2 [SET W(1) = 0; Z^Z_iPoke] ---> S3
+
+S3,
+
+0.02": ---> S2
+#RA(^ActivePoke): ---> S3
+#RA(^InactivePoke): ---> S3
 
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ 
