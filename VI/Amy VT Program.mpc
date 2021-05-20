@@ -82,6 +82,7 @@
 ^CueTimer       = 2
 ^PumpTimer        = 3
 ^BQTimer        = 4
+^
 \^BinTimer       = 6
 \^TimeOutTimer    = 7
 
@@ -133,7 +134,7 @@ S3,
 3": ---> STOPABORTFLUSH
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\\\\\\\\\\\\ VI Control \\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\ VT Control \\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 S.S.2,
@@ -144,7 +145,7 @@ S1,
 
 S2,
 
-\\ initiallizes constant probability array. The mean of the array is set in the macro as A(^VIMEAN) and the list is set to var K. 
+\\ initiallizes constant probability array. The mean of the array is set in the macro as A(^VIMean) and the list is set to var K. 
 \\ -5 is entered into the C array to denote a new VIT is starting. Counter S is used to increment vars P,Q,L,S,U and V
 \\ writes session duration into C array, issues the VI_Start Z signal, sets inactive lever
 
@@ -166,12 +167,14 @@ S3,
                                     SET C(I)=-3; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987;
                                     RANDI D = K; SET C(I)=-5; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987  ---> S4
 
-S4, \\ wait for rewards to finish
+S4, \\ wait for rewards to finish. Once it receives a VIStart Z-signal it starts the next VITimer
 
 #Z^Z_VIStart: ---> S3
 
 
-\\S5, \\\ Time-out before next VI
+\\S5, 
+\\\ Time-out before next VI
+\\ Time Out removed from program but the code is left incase Dr. G wants the feature added back in
 
 \\0.01": ADD T(^TimeOutTimer); IF T(^TimeOutTimer)>= A(^TimeOutDuration) [@TimeOutOver]
 \\            @TimeOutOver:   ---> S3
@@ -185,9 +188,26 @@ S4, \\ wait for rewards to finish
 
 S.S.3,
 
-S1,
+\\ Relavent Variables: 
+\\ G(0) is BBQ Cue duration
+\\ G(1) is BQ Cue duration
+\\ D is the Current VI Time Variable
+\\ A(^CueDuration) is the duration that the Cue's are active for
 
-\\ D holds current Variable time interval
+\\ The purpose of this control system is to count and differentiate responses during the cue presentation 
+\\ before the reward is issued. 
+\\ 
+\\ Checks to see if (VTI - CueDuration) is < 0
+\\ If the CueDuration is longer than the VIT, then control is passed directly to S3 where nosepokes are incremented
+\\ in the "Before Cue" B variables
+
+\\ If the Cue Duration is longer than the VTI, control is passed to S2 where nose pokes are incremented in a
+\\ "Before the Before the Cue" (BB4Q) time period. (This is actually a misnomer. Before the Reward and Before Before the reward
+\\ fits better but I'm not going back and changing all those variable names)  
+\\ Control is then sent to S3 where nose pokes are incremented in the "Before Cue" time period
+
+
+S1,
 
 #Z^Z_VIStart: IF D-A(^CueDuration)<0 [@skipcountdown, @countdownuntilrecording]
     @skip: SET G(1) = D ---> S3
@@ -196,30 +216,41 @@ S1,
 S2,
 
 #Z^Z_End: ---> S5
-#RA(ActivePoke): ADD W; IF W >= 2 [@BeamBreak, @NoBeamBreak]
-        @BeamBreak: ADD B(^ActTotal); SET C(I)=-8; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> S6
+#RA(^ActivePoke): ADD W(1); IF W(1) >= 2 [@BeamBreak, @NoBeamBreak]
+        @BeamBreak: ADD B(^ActTotal); SET C(I)=-8, W(1) = 0; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> S6
         @NoBreamBreak: ---> SX
-
-
-
-#RA(^ActivePoke): 
-#RA(^InactivePoke): ADD B(^InactTotal); SET C(I)=-9; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> SX
+#RA(^InactivePoke): ADD W(2); IF W(2) >=2 [@BeamBreak, @NoBeamBreak]
+        @BeamBreak: ADD B(^InactTotal); SET C(I)=-9, W(2) = 0; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> S6
+        @NoBeamBreak: ---> SX
 0.01": ADD T(^BQTimer); IF T(^BQTimer)>= G(0) [SET T(^BQTimer) = 0, G(0)=0] ---> S3
 
+S6,     \\      poke "catch" for S2 that is waiting for the rat to remove his head
 
-S6,
+#Z^Z_End: ---> S5
+#RA(^ActivePoke): ---> S6
+#RA(^InactivePoke): ---> S6
 
-#RA(ActivePoke): ---> SX
-
-
-
+0.01": ADD T(^BQTimer), W(2); IF W(2) >= 2 [@NoBeamBreak, @BeamStillBroke]
+        @NoBeamBreak: SET W(2) = 0 ---> S2
+        @BeamStillBroke: IF T(^BQTimer)>= G(0) [SET T(^BQTimer) = 0, G(0)=0] ---> S7    // sends to S7 instead bc his nose is in the hole still
 
 S3, \\ begin recording responses [cue duration] before reward issued (or as soon as vi is decided in the event that it's less than 10 seconds)
 
 #Z^Z_End: ---> S5
 #Z^Z_Reward: ---> S4
 #RA(^ActivePoke): ADD B(^ActTotal), B(^ActB4Cue), P(S); ARITHMETICMEAN P(0)=P,1,S; SET C(I)=-1; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> SX
-#RA(^InactivePoke): ADD B(^InactTotal), B(^InactB4Cue), Q(S); ARITHMETICMEAN Q(0)=Q,1,S; SET C(I)=-2; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> SX
+#RA(^InactivePoke): ADD B(^InactTotal), B(^InactB4Cue), Q(S); ARITHMETICM
+
+S7, 
+
+\\ Poke "catch" for S3 that is waiting for the rat to remove his head from the nose poke hole
+
+0.02": ---> S3
+#Z^Z_End: ---> S5
+#Z^Z_Reward: ---> S4
+#RA(^ActivePoke): ---> S7
+#RA(^InactivePoke): ---> S7
+
 
 S4, \\ begin recording responses while cues have been issued
 
@@ -229,8 +260,19 @@ S4, \\ begin recording responses while cues have been issued
                                     IF D-A(^CueDuration)<0 [@skipcountdown, @countdownuntilrecording]
                                                         @skip: SET G(1) = D ---> S3
                                                         @countdown: SET G(0) = D-A(^CueDuration), G(1)=A(^CueDuration) ---> S2
-#RA(^ActivePoke): ADD B(^ActTotal), B(^ActCue), L(S); ARITHMETICMEAN L(0)=L,1,S; SET C(I)=-6; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> SX
-#RA(^InactivePoke): ADD B(^InactTotal), B(^InactCue), M(S); ARITHMETICMEAN M(0)=M,1,S; SET C(I)=-7; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> SX
+#RA(^ActivePoke): ADD W(1); IF W(1) >= 2 [@NosePoke]
+        @NosePoke: ADD B(^ActTotal), B(^ActCue), L(S); ARITHMETICMEAN L(0)=L,1,S; SET C(I)=-6, W(1) = 0; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> S8
+#RA(^InactivePoke): ADD W(2); IF W(2) >=2 [@NosePoke]
+        @NosePoke: ADD B(^InactTotal), B(^InactCue), M(S); ARITHMETICMEAN M(0)=M,1,S; SET C(I)=-7, W(2) = 0; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> S8
+
+
+S8,
+
+0.02": ---> S4
+#Z^Z_End: ---> S5
+#RA(^ActivePoke): ---> S8
+#RA(^InactivePoke): ---> S8
+
 
 \S5,
 
@@ -270,13 +312,10 @@ S2,
                 @StimLiteOnly: ON A(^ActivePoke) ---> S3
                 @Nexy: IF A(^CueType) = 3 [ON ^Sonalert, A(^ActivePoke) ---> S3]
 
-
-
-
 S3,
 
 0.01": ADD T(^CueTimer); IF T(^CueTimer) >= A(^CueDuration) [@end]
-                                    @end: OFF ^Sonalert; SET T(^CueTimer)=0; Z^Z_VIStart ---> S2                                                                                                                                                                        
+        @end: OFF ^Sonalert; SET T(^CueTimer)=0; Z^Z_VIStart ---> S2                                                                                                                                                                        
 
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
