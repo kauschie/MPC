@@ -3,6 +3,9 @@
 \\ April 10th, 2012
 \\ Revised May 7, 2012
 \\ Revision Notes:
+\\ Update May 20, 2021
+\\ - No longer doing versions (v#) because it's been switched to a git repository
+\\ - Added "Level" Control Logic to support continuous input signals
 \\ V8
 \\  - changed sonalert to output 6 (probably because a box has a bad output)
 \\  - added ability to have sonalert and stim light both presented
@@ -90,7 +93,9 @@
 ^BinTimer = 4
 \U
 \V
-\W
+\W - Poke Counters 
+\W(0) - active counter
+\W(1) - inctive counter
 \X
 \Y
 \Z-Signals
@@ -100,6 +105,8 @@
 ^Z_Stop = 4
 ^Z_Data = 5
 ^Z_StartBC = 6
+^Z_aPoke = 7
+^Z_iPoke = 8
 
 DIM A = 10
 DIM B = 6
@@ -109,6 +116,7 @@ DIM F = 1000
 DIM G = 1000
 DIM J = 3
 DIM T = 5
+DIM W = 1
 
 
 
@@ -128,7 +136,7 @@ S2,
 
 S3,
 
-0.01": ADD T(^SessionTimer); IF T(^SessionTimer)=A(^SessionDuration) [@True, @False]
+0.01": ADD T(^SessionTimer); IF T(^SessionTimer)>=A(^SessionDuration) [@True, @False]
     @T: Z^Z_Stop; SET B(^SessionEnd)=T(^SessionTimer)---> S4
     @F: ---> S3
 #Z^Z_Stop: SET B(^SessionEnd)=T(^SessionTimer) ---> S4
@@ -179,7 +187,7 @@ S1,
 S2,  \\ During Time In
 
 #Z^Z_Stop: ---> S4
-#RA(^ActivePoke): ADD B(^ActR), K; IF K=A(^FR) [@IssueReward, @Continue]
+#Z^Z_aPoke: ADD B(^ActR), K; IF K>=A(^FR) [@IssueReward, @Continue]
     @Reward: SET K=0; ADD B(^Inf); Z^Z_Reward; IF B(^Inf)=A(^Maxinf) [@end, @cont]
         @End: Z^Z_Stop ---> S4
         @Cont: ---> S3
@@ -189,7 +197,7 @@ S3,  \\ During Time Out
 
 #Z^Z_Stop: ---> S4
 #Z^Z_TimeIn: ---> S2
-#RA(^ActivePoke): Add B(^ActRTO) ---> SX
+#Z^Z_aPoke: Add B(^ActRTO) ---> SX
 
 S4, \\ End of Program
 
@@ -212,7 +220,7 @@ S2,
 
 #Z^Z_Stop: ---> S3
 #Z^Z_Reward: ---> S4
-#RA(^InactivePoke): ADD B(^InactR) ---> SX
+#Z^Z_iPoke: ADD B(^InactR) ---> SX
 
 S3,
 
@@ -222,7 +230,62 @@ S4,
 
 #Z^Z_Stop: ---> S3
 #Z^Z_TimeIn: ---> S2
-#RA(^InactivePoke): ADD B(^InactRTO) ---> SX
+#Z^Z_iPoke: ADD B(^InactRTO) ---> SX
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\NosePoke Level Control\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+\\***************************************************
+\ BEAM BREAK DEFINED - 20ms BREAK, 20ms RELEASE
+\***************************************************
+\ Inputs in Level Mode generate an input "count" on each
+\ interrupt. With a 10 ms system resolution 2 counts
+\ will be reached in 20 ms. The Z3 pulse is used to
+\ signal a completed Beam Break. The second statement resets
+\ the counter every 20 ms so that a partial Beam Break of
+\ less than 20 ms will not constitute a Response.
+
+S.S.11,
+
+S1,
+
+#Z^Z_Start: ---> S2
+
+S2,
+
+#RA(^ActivePoke): ADD W(0); IF W(0) >= 2 [Z^Z_aPoke; SET W(0) = 0] ---> S3
+#RA(^InactivePoke): ADD W(1); IF W(1) >= 2 [Z^Z_iPoke; SET W(1) = 0] ---> S4
+
+S3,
+
+\ As long as the Beam is broken the second statement
+\ causes a re-entry to this State. This resets the
+\ the internal 20 ms timer so it never times out. When
+\ the Beam is released for 20 ms the timer times out
+\ and a Z4 pulse signals the release.
+\ 3rd statement allows for simultaneous responses in case a tail 
+\ or something accidentally trips the first response
+
+0.02": ---> S2
+#RA(^ActivePoke): ---> S3
+#RA(^InactivePoke): Z^Z_iPoke ---> S5
+
+S4,
+
+0.02": ---> S2
+#RA(^ActivePoke): Z^Z_aPoke ---> S5
+#RA(^InactivePoke): ---> S3
+
+S5,
+
+0.02": ---> S2
+#RA(^ActivePoke): ---> S5
+#RA(^InactivePoke): ---> S5
+
 
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -305,8 +368,8 @@ S1,
 
 S2,
 
-#RA(^ActivePoke): ADD D(J(0)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -9; ADD I; SET C(I) = -987.987 ---> SX
-#RA(^InactivePoke): ADD F(J(1)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -4; ADD I; SET C(I) = -987.987 ---> SX
+#Z^Z_aPoke: ADD D(J(0)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -9; ADD I; SET C(I) = -987.987 ---> SX
+#Z^Z_iPoke: ADD F(J(1)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -4; ADD I; SET C(I) = -987.987 ---> SX
 #Z^Z_Reward: ADD G(J(2)); SET C(M) = T(^SessionTimer); ADD M ---> SX
 
 \\\\\\\\\\\\\\\\\\
