@@ -1,0 +1,235 @@
+\\ Dr. Amy Gancarz-Kausch Stop Task Program
+\\ Started 05/21/2021
+\\ By Michael A. Kausch
+\\ Features:
+
+
+\\Inputs
+^LeftPoke = 1
+^RightPoke = 2
+^MiddlePoke = 3
+
+\\Outputs
+^LStimLight = 1
+^RStimLight = 2
+^HouseLight = 3
+^Pump = 4
+^Sonalert = 5
+^Red = 6
+^Yellow = 7
+^Green  = 8
+
+\A Control Variables
+\^SessionDuration = 0   \ session duration in centiseconds
+\^VIMean = 1  \ mean value for the VI array
+\^ActivePoke = 2 \ 1 for left and 2 for right
+\^CueType = 3 \ 1 for sonalert, 2 for stimulus light, 3 for both
+\^CueDuration = 4 \ duration of cue in centiseconds
+\^PumpDuration    = 5    \ pump duration in centiseconds
+\^InactivePoke    = 6    \ program auto sets this variable to be the inactive lever based on macro input of A(2)
+\^TimeOutDuration = 8 \ time of post-VI timeout in centiseconds
+
+
+\B  Data Array
+\^Rewards = 0
+\^ActB4Cue = 1
+\^InactB4Cue = 2
+\^ActCue    = 3
+\^InactCue = 4
+\^ActTotal = 5
+\^InactTotal = 6
+
+\C  IRT Array
+\    (-1) Act Poke B4 Cue
+\    (-2) Inact Poke B4 Cue
+\    (-3) Reward Issued
+\     (-5) denotes new VI active
+\    (-6) Act Poke during Cue
+\    (-7) Inact Poke during Cue
+\	(-8) Act Poke BB4Q
+\ 	(-9) Inact Poke BB4Q
+
+\D  
+\E  
+\F
+\G  
+\H
+\I  
+\J
+\K  
+\L  
+\M  
+\N   
+\O
+\P  
+\Q  
+\R  
+\S  
+\T
+\U
+\V
+\W
+\X
+\Y
+\Z   Signals
+^Z_LPoke       = 0
+^Z_RPoke       = 1 
+
+
+
+DIM C=10000
+
+program design
+I:O (all states are sequential unless noted)
+
+Vars
+    Variable Hold Time  - average hold time set for each individual rat for entire session, 
+                        - cumulative time spent in hole (does not reset if total duration not met)
+                        - adjusted between sessions and changed based on performance
+                        - selected w/o replacement [0.04, 0.56, 1.12, 1.68, 2.28, 2.88, 3.44 and 4.0s]
+    Trial Type - 1 for Go, 2 for Stop, select from list [1,1,1,2] without replacement 
+                - select after the 
+    pump duration  = 2,010 / (1+ 0.01RT) where RT = Go RT in ms
+                    eg. a 500ms Go RT would result in solenoid being open for 335ms which produces 50uL
+                    250ms Go RT results in valve being open 570ms which produces 84uL
+                    manipulated every "go" trial and saved as this variable
+    stop signal delay - changes from trial to trial +/- 20ms depending on successful/unsuccessful trial
+
+timers:
+    Variable Hold Timer - measures to see if snout has been in hole long enough
+    Initiation Reaction Timer - recorded measurement
+    Go RT timer - 
+    sessiontimer
+    pump timer - duration that pump is on for. 
+                        
+
+session timer - 30 min max or 60 trials
+              - record time finished if it ends sooner
+
+
+
+
+
+Any Trial:
+
+trial starts: center light light on, determine if Stop response (25% probability) vs Go Response (75% probability)
+nose poke in center hole for Variable Hold Time: turn center light off (Go Signal), 
+                                               : start timer to measure time it takes to remove snout from hole
+                                                            (Initiation RT)
+
+            ----------------Program Branches based on 75% Go and 25% Stop probability----------------
+                                               : if 75% "Go" probability scenario start Go RT timer
+
+if 75% and 
+        rat removes snout from center hole: end Initiation RT
+        
+        if right poke: end Go RT, 
+                     : Move RT = Go RT - Initiation RT
+                     : issue reward that scales based on GO RT length
+                     : record most recent reward size or time
+
+
+if 25% and 
+        rat removes snout from center hole: end Initiation RT 
+                                          : start Variable Stop Signal Delay (vSSD) timer
+        
+        //if right poke before vSSD timer >= vSSD: **unknown** (maybe? Stop Failure; change vSSD if required) - Don't look for this, it's not probable given the small amount of time
+        if var Stop Signal Delay finishes: issue tone for stop signal
+                                         : start Change RT timer
+                if left poke during ChangeRT: stop ChangeRT timer; 
+                                            : successful stop,
+                                            : gets reward for most recently reinforced Go probability scenario
+                                            : record ChangeRT
+                                            : increment vSSD if required
+                                            : new trial
+                if right poke during ChangeRT: stop ChangeRT timer; 
+                                             : stop failure
+                                             : decrement vSSD if required
+                                             : new trial
+        
+
+\\***************************************************
+\ BEAM BREAK DEFINED - 20ms BREAK, 20ms RELEASE
+\***************************************************
+\ Inputs in Level Mode generate an input "count" on each
+\ interrupt. With a 10 ms system resolution 2 counts
+\ will be reached in 20 ms. The Z3 pulse is used to
+\ signal a completed Beam Break. The second statement resets
+\ the counter every 20 ms so that a partial Beam Break of
+\ less than 20 ms will not constitute a Response.
+
+
+\\ state sets should simply invoke Z^Z_LPoke and Z^Z_RPoke for left and right
+\\ pokes instead of repeating the logic to interperate individual nosepokes
+
+S.S.1,
+
+S1,
+
+#Z^Z_Start: ---> S2
+
+S2,
+
+#RA(^ActivePoke): ADD W(0); IF W(0) >= 2 [Z^Z_aPoke; SET W(0) = 0] ---> S3
+#RA(^InactivePoke): ADD W(1); IF W(1) >= 2 [Z^Z_iPoke; SET W(1) = 0] ---> S4
+
+S3,
+
+\ As long as the Beam is broken the second statement
+\ causes a re-entry to this State. This resets the
+\ the internal 20 ms timer so it never times out. When
+\ the Beam is released for 20 ms the timer times out
+\ and a Z4 pulse signals the release.
+\ 3rd statement allows for simultaneous responses in case a tail 
+\ or something accidentally trips the first response
+
+0.02": ---> S2
+#RA(^ActivePoke): ---> S3
+#RA(^InactivePoke): Z^Z_iPoke ---> S5
+
+S4,
+
+0.02": ---> S2
+#RA(^ActivePoke): Z^Z_aPoke ---> S5
+#RA(^InactivePoke): ---> S3
+
+S5,
+
+0.02": ---> S2
+#RA(^ActivePoke): ---> S5
+#RA(^InactivePoke): ---> S5
+
+
+\***************************************************
+\                   Session Timer
+\***************************************************
+\\ increments t(^sessiontimer) until it reaches the a(^sessionduration)
+\\ afterwards it issues a z^z_stop signal that terminates the program
+
+S.S.1,
+
+S1,
+
+//initialize any variables or import data from datafiles to be used
+
+0.01":  ---> S2
+
+S2,
+
+#START: Z^Z_Start; Z^Z_StartBC ---> S3
+
+S3,
+
+0.01": ADD T(^SessionTimer); IF T(^SessionTimer)>=A(^SessionDuration) [@True, @False]
+    @T: Z^Z_Stop; SET B(^SessionEnd)=T(^SessionTimer)---> S4
+    @F: ---> S3
+#Z^Z_Stop: SET B(^SessionEnd)=T(^SessionTimer) ---> S4
+
+S4,
+5":---> STOPABORTFLUSH
+
+
+\***************************************************
+\                   Session Timer
+\***************************************************
+
