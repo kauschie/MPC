@@ -29,6 +29,13 @@
 \\ -All Data written to C Array
 
 
+\ IRT Codes
+\ -9 = Active Poke 
+\ -8 = Active Poke during time out
+\ -4 = Inactive Poke
+\ -3 = Inactive Poke during time out
+
+
 \\Inputs
 ^LeftPoke = 1
 ^RightPoke = 2
@@ -368,9 +375,17 @@ S1,
 
 S2,
 
+#Z^Z_Reward: ADD G(J(2)); SET C(M) = T(^SessionTimer); ADD M ---> S3
 #Z^Z_aPoke: ADD D(J(0)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -9; ADD I; SET C(I) = -987.987 ---> SX
 #Z^Z_iPoke: ADD F(J(1)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -4; ADD I; SET C(I) = -987.987 ---> SX
-#Z^Z_Reward: ADD G(J(2)); SET C(M) = T(^SessionTimer); ADD M ---> SX
+
+
+S3, 
+
+#Z^Z_TimeIn: ---> S2
+#Z^Z_aPoke: ADD D(J(0)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -8; ADD I; SET C(I) = -987.987 ---> SX
+#Z^Z_iPoke: ADD F(J(1)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -3; ADD I; SET C(I) = -987.987 ---> SX
+
 
 \\\\\\\\\\\\\\\\\\
 \\\Show Commands\\\
