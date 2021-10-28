@@ -105,7 +105,8 @@ DIM P=1000
 DIM Q=1000
 DIM R=1000
 
-
+\\ O is a array of two values for a 1/2 chance in the sonalert state sets
+\\ G is an array of values for chance, results in a 1/6 chance
 
 LIST K = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
 LIST G = 0, 1, 2,3,4,5
@@ -134,7 +135,7 @@ S3,
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\ VI Control \\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\ initializes K array to a progression defined by the hoffman-flescler
+\\ initializes K array to a progression defined by the hoffman-fleschler
 \\ constant probability distribution with A(^VIMean) being the mean value of the array
 \\ randomly (without replacement) selects a time from K array and sets it equal to D
 \\ VI timer then checks if the interval has reached D, the random time
@@ -148,8 +149,6 @@ S1,
 0.01":  ---> S2
 
 S2,
-
-
 
 #Start: INITCONSTPROBARR K,A(^VIMean); RANDD D = K; SET C(I)=-5; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987   ---> S3
 
