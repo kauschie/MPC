@@ -47,12 +47,14 @@
 ^SessionEnd = 3
 ^InactRTO = 4
 ^ActRTO = 5
+^ActTOT = 6	\ total active responses
+^InactTOT = 7   \ total inactive responses
 
 
 \C Array - IRT Array
-\D Array - Binned Active Response Data Array
+\D Array - Binned Active Response TI Data Array
 \E - error variable
-\F Array - Binned Inactive Response Data Array
+\F Array - Binned Inactive Response TI Data Array
 \G Array - Binned Reward Data Array
 \H
 \I - C Array Counter
@@ -62,9 +64,9 @@
 \M - Data Writer Variable
 \N - Data Writer Variable
 \O
-\P
-\Q
-\R
+\P Array - Binned Active TO Response Data Array
+\Q Array - Binned Inactive TO Response Data Array
+\R 
 \S
 \T - Timer  Array
 ^SessionTimer = 0
@@ -86,12 +88,14 @@
 ^Z_StartBC = 6
 
 DIM A = 10
-DIM B = 6
+DIM B = 8
 DIM C = 99999
 DIM D = 1000
 DIM F = 1000
 DIM G = 1000
 DIM J = 3
+DIM P = 1000
+DIM Q = 1000
 DIM T = 5
 
 
@@ -163,7 +167,7 @@ S1,
 S2,  \\ During Time In
 
 #Z^Z_Stop: ---> S4
-#RA(^ActivePoke): ADD B(^ActR), K; IF K=A(^FR) [@IssueReward, @Continue]
+#RA(^ActivePoke): ADD B(^ActR), B(^ActTOT), K; IF K=A(^FR) [@IssueReward, @Continue]
     @Reward: SET K=0; ADD B(^Inf); Z^Z_Reward; IF B(^Inf)=A(^Maxinf) [@end, @cont]
         @End: Z^Z_Stop ---> S4
         @Cont: ---> S3
@@ -173,7 +177,7 @@ S3,  \\ During Time Out
 
 #Z^Z_Stop: ---> S4
 #Z^Z_TimeIn: ---> S2
-#RA(^ActivePoke): Add B(^ActRTO) ---> SX
+#RA(^ActivePoke): Add B(^ActRTO), B(^ActTOT) ---> SX
 
 S4, \\ End of Program
 
@@ -196,7 +200,7 @@ S2,
 
 #Z^Z_Stop: ---> S3
 #Z^Z_Reward: ---> S4
-#RA(^InactivePoke): ADD B(^InactR) ---> SX
+#RA(^InactivePoke): ADD B(^InactR), B(^InactTOT) ---> SX
 
 S3,
 
@@ -206,7 +210,7 @@ S4,
 
 #Z^Z_Stop: ---> S3
 #Z^Z_TimeIn: ---> S2
-#RA(^InactivePoke): ADD B(^InactRTO) ---> SX
+#RA(^InactivePoke): ADD B(^InactRTO), B(^InactTOT) ---> SX
 
 
 \\\\\\\\\\\\\\\\\\\\\\\\\
@@ -271,11 +275,11 @@ S2,
 #RA(^InactivePoke): ADD F(J(1)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -4; ADD I; SET C(I) = -987.987 ---> SX
 
 
-S3, 
+S3,
 
 #Z^Z_TimeIn: ---> S2
-#RA(^ActivePoke): ADD D(J(0)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -8; ADD I; SET C(I) = -987.987 ---> SX
-#RA(^InactivePoke): ADD F(J(1)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -3; ADD I; SET C(I) = -987.987 ---> SX
+#RA(^ActivePoke): ADD P(J(0)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -8; ADD I; SET C(I) = -987.987 ---> SX
+#RA(^InactivePoke): ADD Q(J(1)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -3; ADD I; SET C(I) = -987.987 ---> SX
 
 
 
@@ -294,7 +298,19 @@ S1,
     SHOW 4,Session Time,T(^SessionTimer);
     SHOW 5,Time Remaining,((A(^SessionDuration)-T(^SessionTimer))/6000);
     SHOW 6,ActRsp TO,B(^ActRTO);
-    SHOW 7,InactRsp TO,B(^InactRTO) ---> SX
+    SHOW 7,InactRsp TO,B(^InactRTO);
+    SHOW 9,ActTOT,B(^ActTOT);
+    SHOW 10,InactTOT,B(^InactTOT);
+    SHOW 11,ACT BIN1,D(0);
+    SHOW 12,ACT BIN2,D(1);
+    SHOW 13,ACT BIN3,D(2);
+    SHOW 16,INACT BIN1,F(0);
+    SHOW 17,INACT BIN2,F(1);
+    SHOW 18,INACT BIN3,F(2);
+    SHOW 21,REW BIN1,G(0);
+    SHOW 22,REW BIN2,G(1);
+    SHOW 23,REW BIN3,G(2) ---> SX
+
 
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -337,18 +353,21 @@ S1,
             @nobins: ---> SX
 
 S2,
-#Z^Z_Stop: SET D(J(0)+1) = -987.987, F(J(1)+1) = -987.987, G(J(2)+1) = -987.987  ---> SX
-#Z^Z_StartBC: SET D(J(0))=0, F(J(1))=0, G(J(2))=0, L=1; SET D(J(0)+A(^Binnum)+1) = -987.987; SET F(J(1)+A(^Binnum)+1) = -987.987; SET G(J(2)+A(^Binnum)+1) = -987.987 ---> S3
+#Z^Z_Stop: SET D(J(0)+1) = -987.987, F(J(1)+1) = -987.987, G(J(2)+1) = -987.987, P(J(0)+1) = -987.987, Q(J(1)+1) = -987.987  ---> SX
+#Z^Z_StartBC: SET D(J(0))=0, F(J(1))=0, G(J(2))=0, P(J(0))=0, Q(J(1))=0, L=1; 
+ 		SET D(J(0)+A(^Binnum)+1) = -987.987; SET F(J(1)+A(^Binnum)+1) = -987.987; SET G(J(2)+A(^Binnum)+1) = -987.987;
+		SET P(J(2)+A(^Binnum)+1) = -987.987; SET Q(J(2)+A(^Binnum)+1) = -987.987 ---> S3
 
 
-S3,        \\ ****Alter to look more pretty on printout
+S3,        
 
-#Z^Z_Stop: ADD J(0), J(1), J(2); SET D(J(0)+1) = -987.987, F(J(1)+1) = -987.987, G(J(2)+1) = -987.987 ---> S2
+#Z^Z_Stop: ADD J(0), J(1), J(2); SET D(J(0)+1) = -987.987, F(J(1)+1) = -987.987, G(J(2)+1) = -987.987; 
+            SET P(J(0)+1) = -987.987, Q(J(1)+1) = -987.987 ---> S2
 
 0.01": ADD T(^BinTimer); IF T(^BinTimer) >= A(^BinDuration) [@end, @cont]
     @end: ADD J(0), J(1), J(2), L; IF L > A(^Binnum) [@end, @cont]
-                        @end: SET L=0, D(J(0))=0, F(J(1))=0, G(J(2))=0 ---> S2
-                        @cont: SET D(J(0))=0, F(J(1))=0, G(J(2))=0, T(^BinTimer)=0 ---> S3
+                        @end: SET L=0, D(J(0))=0, F(J(1))=0, G(J(2))=0, P(J(0))=0, Q(J(0))=0 ---> S2
+                        @cont: SET D(J(0))=0, F(J(1))=0, G(J(2))=0, P(J(0))=0, Q(J(0))=0, T(^BinTimer)=0  ---> S3
     @cont: ---> S3
 
 
