@@ -111,10 +111,11 @@ S3,
 #Z^Z_Stop: SET B(^SessionEnd)=T(^SessionTimer), B(^PRResp) = K, B(^PRatio) = Q(R) ---> S4
 
 S4,
-10":---> STOPABORTFLUSH
 
-\\\\\  Changing the time above to be longer, from 5" to 5'
-\\\\\\ changed it back to 10 seconds
+10":---> STOPABORTFLUSH
+\\ earlier versions had this set at 5' for some reason
+\\ it was commented that this was purposely done by experimental design
+
 
 
 
