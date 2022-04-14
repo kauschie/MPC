@@ -168,7 +168,7 @@ S2,  \\ During Time In
 
 #Z^Z_Stop: ---> S4
 #RA(^ActivePoke): ADD B(^ActR), B(^ActTOT), K; IF K=A(^FR) [@IssueReward, @Continue]
-    @Reward: SET K=0; ADD B(^Inf); Z^Z_Reward; IF B(^Inf)=A(^Maxinf) [@end, @cont]
+    @Reward: SET K=0; ADD B(^Inf); Z^Z_Reward; IF B(^Inf)=A(^MaxInf) [@end, @cont]
         @End: Z^Z_Stop ---> S4
         @Cont: ---> S3
     @Cont: ---> S2
