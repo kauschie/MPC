@@ -1,0 +1,456 @@
+\\ Amy Fixed Ratio with Operant Novelty Seeking
+\\ Programmed by Michael Kausch
+\\ Started Oct, 28th, 2021
+\\ Features:
+\\ 
+
+
+\\Inputs
+^LeftNosePoke = 1
+^RightNosePoke = 2
+^MiddlePoke = 3
+
+\\Outputs
+^LeftStimLight = 1
+^RightStimLight = 2
+^HouseLight = 3
+^Pump = 4
+^Sonalert = 5
+^Red = 6
+^Yellow = 7
+^Green  = 8
+
+\\Variables
+\A Array - Program Variables
+^SessionDuration = 0        \\ max session length for the rat
+^TimeOutDuration = 1                \\ Time Out duration
+^ActivePoke = 2             \\ active poke side   1 for left 2 for right
+^InactivePoke = 3           \\ set automatically by the program based on A(^ActivePoke)
+^STODuration = 4          \\ session timeout if rat sits idle for too long and doesn't respond
+^SLRT2ON = 5   \ time that the beep sonalert is on
+^SLRT2OFF = 6  \ time that the beep sonalert is off
+^SLRT2CYC = 7  \ number of cycles of A(^SLRT2ON) and A(^SLRT2OFF) 
+
+
+\B Array - Data
+^SessionEnd = 0         \\ time that the session ends
+^PRResp = 1             \\ rat's final responses (K) towards next PR Value Q(R) or B(2)
+^Breakpoint = 2         \\ breakpoint
+^ActR = 3               \\ total active responses during time in
+^ActRTO = 4             \\ total active responses during time out periods
+^Rewards = 5            \\ total number of ratios hit (and reward pariods entered)
+^InactR = 6             \\ Active responses during time in
+^InactRTO = 7           \\ Inactive responses during time out period
+^RewardsActive = 8      \\ Accumulator for the number of rewards activated
+
+
+\C Array - IRT Array
+\D Array - Active Poke Array - logs number of active pokes during each PR period
+\E - error variable
+\F Array - Inactive Poke Array - logs number of inactive pokes during each PR period
+\G Array - Reward Chance List
+\H
+\I - C Array index
+
+\J   Reward Type    (used to hold probability from RANDI J(#) = G)
+^RandGreen                  = 0     
+^RandRed                    = 1
+^RandYellow                 = 2
+^RandHLite                  = 3
+^RandLStimLight             = 4
+^RandRStimLight             = 5
+^RandSelectSonalert         = 7
+^SonalertActive             = 6
+
+\K - Active Response Accumulator
+
+\L   Variable Reward Timer
+^LRed                    = 0
+^LYellow                 = 1
+^LGreen                  = 2
+^LHouse                  = 3
+^LSLRT                   = 4
+^LLSL                    = 5
+^LRSL                    = 6
+
+\M - 
+\N - Reward chance list for reward duration times
+\O - Reward chance list for 1/2 probability
+\P
+\Q - Progressive Ratio Array (declared at the bottom of the macro)
+\R - Progressive Ratio Index
+\S
+
+\T - Timer  array
+^SessionTimer   = 0      \\ Session timer
+^TOTimer        = 1      \\ Time Out timer
+^STOTimer       = 2      \\ session time out timer
+^RTimer         = 3      \\ Red Timer
+^YTimer         = 4      \\ Yellow Timer
+^GTimer         = 5      \\ Green Timer
+^HLTimer        = 6      \\ House Light Timer
+^TSLRT1         = 7      \\ Timer SonaLeRT 1
+^TSLRT2         = 8      \\ Timer SonaLeRT 2
+^TLSL           = 9      \\ Timer Left Stim Light
+^TRSL           = 10     \\ Timer Right Stim Light
+
+
+\U
+\V  Reward array - logs number of rewards activated during each reward period
+\W  
+\X
+\Y
+
+\Z-signals
+^Z_Start        = 0            \\ #start will signal data initilization. ^Z_Start is then sent after initialization to start the rest of the programm
+^Z_Stop         = 1              \\ signals state sets to end and flush whatever data is present
+^Z_Reward       = 2           \\ signals a reward is being issued (time out begins)
+^Z_TimeIn       = 3           \\ signals the end of the timeout period
+^Z_EndReward    = 4         \\ signals for all rewards to finish after 5 seconds as a fail safe
+
+\\ DIMs
+DIM A = 7
+DIM B = 8
+DIM C = 99999
+DIM D = 25
+DIM F = 25
+DIM J = 6
+DIM L = 6
+DIM Q = 25
+DIM T = 10
+DIM V = 25
+
+\\ Lists
+LIST G = 0, 1, 2, 3, 4, 5           \\ list of values for randi to select from for 1/6 chance
+LIST N = 100, 200, 300, 400, 500    \\ list of times for randi to select from for reward durations
+LIST O = 0, 1                       \\ list of times for randi to select from for 1/2 chance
+
+
+
+\\\\\\\\\\\\\\\\\
+\\Session Clock\\
+\\\\\\\\\\\\\\\\\
+
+S.S.1,
+
+S1,
+
+0.01":  ---> S2
+
+S2,
+#START: R = 0; Z^Z_Start ---> S3
+
+S3,
+
+#Z^Z_Stop: SET B(^SessionEnd)=T(^SessionTimer), B(^PRResp) = K, B(^Breakpoint) = Q(R) ---> S4
+0.01": ADD T(^SessionTimer); IF T(^SessionTimer)>=A(^SessionDuration) [@True, @False]
+    @T: Z^Z_Stop; SET B(^SessionEnd)=T(^SessionTimer)---> S4
+    @F: ---> S3
+
+
+S4,
+
+5":---> STOPABORTFLUSH
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\Time-Out / Time-In Control\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.2,
+
+S1,
+
+#Z^Z_Reward: ---> S2
+
+S2,
+
+0.01": ADD T(^TOTimer); IF T(^TOTimer) >= A(^TimeOutDuration) [@endTO, @cont]
+    @end: SET T(^TOTimer) = 0; SET V(R) = B(^RewardsActive), B(^RewardsActive) = 0; ADD R; Z^Z_TimeIn ---> S1
+    @cont: ---> SX
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\
+\\Active Poke Responses\\
+\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.3,
+
+S1,
+
+#Z^Z_Start: IF A(^ActivePoke) = 1 [@LeftActive, @continue]
+    @Left: SET A(^InactivePoke) = 2 ---> S2
+    @Cont: IF A(^ActivePoke) = 2 [@RightActive, @error]
+        @Right: SET A(^InactivePoke) = 1 ---> S2
+        @Error: SET E = 3.1; SHOW 1,error,E; Z^Z_Stop ---> S4
+
+S2,  \\ During Time In
+
+#Z^Z_Stop: ---> S4
+#RA(^ActivePoke): ADD B(^ActR), K; IF K>=Q(R) [@IssueReward, @Continue]
+    @Reward: SET K=0; ADD B(^Rewards); Z^Z_Reward ---> S3  
+    @Cont: ---> S2
+
+S3,  \\ During Time Out
+
+#Z^Z_Stop: ---> S4
+#Z^Z_TimeIn: ---> S2
+#RA(^ActivePoke): Add B(^ActRTO) ---> SX
+
+S4, \\ End of Program
+
+0.01": ---> SX
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\Inactive Poke Responses\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.4,
+
+S1,
+
+#Z^Z_Start: ---> S2
+
+S2,
+
+#Z^Z_Stop: ---> S3
+#Z^Z_Reward: ---> S4
+#RA(^InactivePoke): ADD B(^InactR) ---> SX
+
+S3,
+
+0.01" ---> SX
+
+S4,
+
+#Z^Z_Stop: ---> S3
+#Z^Z_TimeIn: ---> S2
+#RA(^InactivePoke): ADD B(^InactRTO) ---> SX
+
+
+\\\\\\\\\\\\\\\\\\\\\
+\\\Response Writer\\\
+\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.7,
+
+S1,
+
+#Z^Z_Start: ---> S2
+
+S2,
+
+#Z^Z_Reward: SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -1; ADD I; SET C(I) = -987.987 ---> SX
+#RA(^ActivePoke): ADD D(R); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -9; ADD I; SET C(I) = -987.987 ---> SX
+#RA(^InactivePoke): ADD F(R); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -4; ADD I; SET C(I) = -987.987 ---> SX
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\
+\\Session Timeout Timer\\
+\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.11,
+
+S1,
+
+#Z^Z_Start: IF A(^PRTimeout) > 0 [] ---> S2
+
+S2,
+
+#Z^Z_Reward: SET T(^STOTimer) = 0
+0.01": ADD T(^STOTimer); IF T(^STOTimer) >= A(^PRTimeout) [@end, @cont]
+			@end: Z^Z_Stop ---> S3
+			@cont: ---> SX
+
+S3,
+
+5": ---> SX
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\ Red Light \\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.4,
+
+S1,
+
+#Z^Z_Reward: RANDI J(1)=G; IF J(1) = 1 [ADD B(^RewardsActive); ON ^Red; RANDI L(^LRed) = N] ---> S2
+
+S2, 
+
+#Z^Z_EndReward: SET T(^RTimer)=0; OFF ^Red ---> S1
+0.01": ADD T(^RTimer); IF T(^RTimer) >= L(^LRed) [SET T(^RTimer)=0; OFF ^Red ] ---> S1
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\ Yellow Light \\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.5,
+
+S1,
+
+#Z^Z_Reward: RANDI J(2)=G; IF J(2) = 1 [ADD B(^RewardsActive); ON ^Yellow; RANDI L(^LYellow) = N] ---> S2
+
+S2,
+
+#Z^Z_EndReward: SET T(^YTimer)=0; OFF ^Yellow ---> S1
+0.01": ADD T(^YTimer); IF T(^YTimer) >= L(^LYellow) [SET T(^YTimer)=0; OFF ^Yellow ] ---> S1
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\ Green Light \\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.6,
+
+S1,
+
+#Z^Z_Reward: RANDI J(0)=G; IF J(0) = 1 [ADD B(^RewardsActive); ON ^Green; RANDI L(^LGreen) = N] ---> S2
+
+S2,
+
+#Z^Z_EndReward: SET T(^GTimer)=0; OFF ^Green ---> S1
+0.01": ADD T(^GTimer); IF T(^GTimer) >= L(^LGreen) [SET T(^GTimer)=0; OFF ^Green ] ---> S1
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\ House Light \\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.7,
+
+S1,
+
+#Z^Z_Reward: RANDI J(3)=G; IF J(3) = 1 [ADD B(^RewardsActive); ON ^HouseLight; RANDI L(^LHouse) = N] ---> S2
+
+S2,
+
+#Z^Z_EndReward: SET T(^HLTimer)=0; OFF ^HouseLight ---> S1
+0.01": ADD T(^HLTimer); IF T(^HLTimer) >= L(^LHouse) [SET T(^HLTimer)=0; OFF ^HouseLight ] ---> S1
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\Sonalert Control\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.8,
+
+S1,
+
+\\ After Z_reward signal is issued, program checks if ...
+
+#Z^Z_Reward: RANDI J(7)=G; IF J(7) = 1 [@ON, @OFF]  \\ sonalert active?
+              @ON: ADD B(^RewardsActive); RANDI J(6)= O; IF J(6) >= 1 [@SONALERT1, @SONALERT2]  \\ type of sonalert beeping?
+                      @SONALERT1: ON ^Sonalert; RANDI L(^LSLRT) = N ---> S3 \\ continuous
+                      @SONALERT2: ON ^Sonalert ---> S4          \\ intermittent 
+              @OFF: ---> S2
+
+
+S2,
+
+#Z^Z_EndReward: ---> S1
+
+
+S3,
+
+0.01": ADD T(^TSLRT1); IF T(^TSLRT1) >= L(^LSLRT) [OFF ^Sonalert; SET T(^TSLRT1)=0 ] ---> S1
+
+S4,
+
+#Z^Z_EndReward: OFF ^Sonalert; SET T(^TSLRT1)=0 ---> S1
+0.01": ADD T(^TSLRT2); IF T(^TSLRT2) >= A(^SLRT2ON) [OFF ^Sonalert; SET T(^TSLRT2)=0] ---> S5
+
+S5,
+
+#Z^Z_EndReward: OFF ^Sonalert; SET T(^TSLRT1)=0 ---> S1
+0.01": ADD T(^TSLRT2); IF T(^TSLRT2) >= A(^SLRT2OFF) [@T]
+        @T: SET T(^TSLRT2)=0; ADD X; IF X<= A(^SLRT2CYC)[@T, @F]
+                                        @T: ON ^Sonalert ---> S4
+                                        @F: SET X=0 ---> S1
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\Left Stimulus Light\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.9,
+
+S1,
+
+#Z^Z_Reward: RANDI J(4)=G; IF J(4) = 1 [ADD B(^RewardsActive); ON ^LStimLight; RANDI L(^LLSL) = N] ---> S2
+
+S2,
+
+#Z^Z_EndReward: SET T(^TLSL)=0; OFF ^LStimLight ---> S1
+0.01": ADD T(^TLSL); IF T(^TLSL) >= L(^LLSL) [SET T(^TLSL)=0; OFF ^LStimLight ] ---> S1
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\Right Stimulus Light\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.10,
+
+S1,
+
+#Z^Z_Reward: RANDI J(5)=G; IF J(5) = 1 [ADD B(^RewardsActive); ON ^RStimLight; RANDI L(^LRSL) = N] ---> S2
+
+S2,
+
+#Z^Z_EndReward: SET T(^TRSL)=0; OFF ^RStimLight ---> S1
+0.01": ADD T(^TRSL); IF T(^TRSL) >= L(^LRSL) [SET T(^TRSL)=0; OFF ^RStimLight ] ---> S1
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\ SHOW COMMANDS \\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.12,
+
+S1,
+
+0.01":     SHOW 1,Rsp to next Reward,(Q(R)-K);
+	SHOW 2,Current Ratio,Q(R);
+	    SHOW 3,Rewards,B(^Inf);
+    SHOW 4,Timeout Timer,T(^STOTimer);
+    SHOW 5,Time Remaining,((A(^SessionDuration)-T(^SessionTimer))/6000);
+    SHOW 6,Active Responses,B(^ActR);
+    SHOW 7,ActRsp TO,B(^ActRTO);
+    SHOW 8,Inactive Responses,B(^InactR);
+    SHOW 9,InactRsp TO,B(^InactRTO);
+    SHOW 10,Rewards Active,B(RewardsActive);
+
+    SHOW 11,Green,J(0), 12,Red,J(1), 13,Yellow,J(2), 14,House Light,J(3), 15,L Stim Light,J(4);
+    SHOW 16,R Stim Light,J(5), 17,Sonalert Active?,J(7), 18,Solid or Beep,J(6) ---> SX
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\ NULL REWARD\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+\\ Not 100% sure but I believe this is a failsafe to ensure all rewards are signaled to turn off
+\\ Must have been from a previous version of code that was being bug tested 
+\\ Probably not necessary but it won't hurt to leave it in
+
+
+S.S.13,
+
+
+S1,
+
+#Z^Z_Reward: ---> S2
+
+S2,
+
+#Z^Z_EndReward: ---> S1
+5": Z^Z_EndReward ---> S1
+
+

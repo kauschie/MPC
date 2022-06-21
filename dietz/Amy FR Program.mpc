@@ -1,0 +1,255 @@
+\\ Amy Fixed Ratio Self-Admin Program
+\\ Programmed by Mike Kausch
+\\ April 10th, 2012
+
+\\Inputs
+^LeftNosePoke = 1
+^RightNosePoke = 2
+
+\\Outputs
+^LeftStimLight = 1
+^RightStimLight = 2
+^HouseLight = 3
+^Pump = 4
+
+\\Variables
+\A Array - Program Variables
+^SessionDuration = 0 \ centiseconds
+^ActivePoke = 1 \ set to 1 for left, 2 for right
+^InactivePoke = 2 \ set automatically by the program depending on activepoke's setting
+^FR = 3 \ Fixed Ratio Value
+^MaxInf = 4 \ whole number values
+^LightDuration = 5 \ centiseconds
+^PumpDuration = 6 \ centiseconds
+^TimeOut = 7
+
+\B Array - Data
+^ActR = 0 \ counts responses to active side
+^InactR = 1 \ counts responses to inactive side
+^Inf = 2 \ counts infusions
+^SessionEnd = 3
+
+
+\C Array - IRT Array
+\D
+\E - error variable
+\F
+\G
+\H
+\I - C Array Counter
+\J
+\K - Active Response Counter
+\L
+\M
+\N
+\O
+\P
+\Q
+\R
+\S
+\T - Timer  Array
+^SessionTimer = 0
+^StimLightTimer = 1
+^PumpTimer = 2
+^TOTimer = 3
+\U
+\V
+\W
+\X
+\Y
+\Z-Signals
+^Z_Stop = 4
+^Z_Start = 1
+^Z_Reward = 2
+^Z_TimeIn = 3
+
+DIM A = 8
+DIM B = 4
+DIM C = 9999
+DIM T = 4
+
+
+
+\\\\\\\\\\\\\\\\
+\\Session Clock\\
+\\\\\\\\\\\\\\\\\
+
+S.S.1,
+
+S1,
+
+0.01":     SET A(^SessionDuration) = 720000, A(^ActivePoke)=1, A(^FR)= 5;
+    SET A(^MaxInf) = 30, A(^LightDuration) = 500, A(^PumpDuration)=300 ---> S2
+
+S2,
+
+#START: Z^Z_Start ---> S3
+
+S3,
+
+0.01": ADD T(^SessionTimer); IF T(^SessionTimer)=A(^SessionDuration) [@True, @False]
+    @T: Z^Z_Stop; SET B(^SessionEnd)=T(^SessionTimer)---> S4
+    @F: ---> S3
+#Z^Z_Stop: SET B(^SessionEnd)=T(^SessionTimer) ---> S4
+
+S4,
+
+10":---> STOPABORTFLUSH
+
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\Time-Out / Time-In Control\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.2,
+
+S1,
+
+#Z^Z_Start: ON ^HouseLight ---> S2
+
+S2,
+
+#Z^Z_Reward: OFF ^HouseLight ---> S3
+
+S3,
+
+0.01": ADD T(^TOTimer); IF T(^TOTimer)>= A(^TimeOut) [@endTO, @cont]
+    @end: SET T(^TOTimer) = 0; ON ^HouseLight; Z^Z_TimeIn ---> S2
+    @cont: ---> SX
+
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\
+\\Active Poke Responses\\
+\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.3,
+
+S1,
+
+#Z^Z_Start: IF A(^ActivePoke) = 1 [@LeftActive, @continue]
+    @Left: SET A(^InactivePoke) = 2 ---> S2
+    @Cont: IF A(^ActivePoke) = 2 [@RightActive, @error]
+        @Right: SET A(^InactivePoke) = 1 ---> S2
+        @Error: SET E = 2.1; SHOW 1,error,E; Z^Z_Stop ---> S4
+
+S2,
+
+#Z^Z_Stop: ---> S4
+#RA(^ActivePoke): ADD B(^ActR), K; IF K=A(^FR) [@IssueReward, @Continue]
+    @Reward: SET K=0; ADD B(^Inf); Z^Z_Reward; IF B(^Inf)=A(^Maxinf) [@end, @cont]
+        @End: Z^Z_Stop ---> S4
+        @Cont: ---> S3
+    @Cont: ---> S2
+
+S3,
+
+#Z^Z_Stop: ---> S4
+#Z^Z_TimeIn: ---> S2
+#RA(^ActivePoke): Add B(^ActR) ---> SX
+
+S4,
+
+0.01": ---> SX
+
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\Inactive Poke Responses\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.4,
+
+S1,
+
+#Z^Z_Start: ---> S2
+
+S2,
+
+#Z^Z_Stop: ---> S3
+#RA(^InactivePoke): ADD B(^InactR) ---> S2
+
+S3,
+
+0.01" ---> SX
+
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\
+\\Stimulus Light Control\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.5,
+
+S1,
+
+#START: ---> S2
+
+S2,
+
+#Z^Z_Reward: ON A(^ActivePoke) ---> S3
+
+S3,
+
+0.01": ADD T(^StimLightTimer); IF T(^StimLightTimer) >= A(^LightDuration) [@Off, @cont]
+    @Off: OFF A(^ActivePoke); SET T(^StimLightTimer)=0 ---> S2
+    @cont: ---> SX
+
+\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\Syringe Pump Control\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.6,
+
+S1,
+
+#START: ---> S2
+
+S2,
+
+#Z^Z_Reward: ON ^Pump ---> S3
+
+S3,
+
+0.01": ADD T(^PumpTimer); IF T(^PumpTimer) >= A(^PumpDuration) [@Off, @cont]
+    @Off: OFF ^Pump; SET T(^PumpTimer)=0 ---> S2
+    @cont: ---> SX
+
+
+\\\\\\\\\\\\\\\\\\\\
+\\\Response Writer\\\
+\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.7,
+
+S1,
+
+#Z^Z_Start: ---> S2
+
+S2,
+
+#RA(^ActivePoke): SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -9; ADD I; SET C(I) = -987.987 ---> SX
+#RA(^InactivePoke): SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -4; ADD I; SET C(I) = -987.987 ---> SX
+#Z^Z_Reward: SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -7; ADD I; SET C(I) = -987.987 ---> SX
+
+\\\\\\\\\\\\\\\\\\
+\\\Show Commands\\\
+\\\\\\\\\\\\\\\\\\\\
+
+S.S.8,
+
+S1,
+
+0.01":     SHOW 1,Active Responses,B(^ActR);
+    SHOW 2,Inactive Responses,B(^InactR);
+    SHOW 3,Infusions,B(^Inf);
+    SHOW 4,Session Time,T(^SessionTimer) ---> SX
+
+
+
+

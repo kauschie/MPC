@@ -1,0 +1,33 @@
+\\ Amy BoxTest Program
+\\ Programmed by Mike Kausch
+\\ April 10th, 2012
+
+\\Inputs
+^LeftNosePoke = 1
+^RightNosePoke = 2
+
+\\Outputs
+^LeftStimLight = 1
+^RightStimLight = 2
+^HouseLight = 3
+^Pump = 4
+
+S.S.1,
+S1,
+
+#R^LeftNosePoke: ON ^LeftStimLight, ^Pump ---> S2
+
+S2,
+
+5": OFF ^LeftStimLight, ^Pump ---> S1
+
+
+S.S.2,
+S1,
+
+
+#R^RightNosePoke: ON ^RightStimLight, ^HouseLight ---> S2
+
+S2,
+
+5": OFF ^RightStimLight, ^HouseLight ---> S1
