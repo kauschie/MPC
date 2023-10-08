@@ -1,0 +1,250 @@
+\**************************************************************
+\*    Patch Depletion
+\*    Created July 2010 
+\*
+\*    Mark Kogutowski
+\*    University at Buffalo
+\*
+\**************************************************************
+\
+\DEFINE INPUT AND OUTPUT CONSTANTS
+
+\Output Constants
+^HouseLight=1
+^CenterLight=2
+^LeftLight=3
+^RightLight=4
+^LeftSonalert=5
+^Relay=6
+^LeftFeeder=7
+^RightFeeder=8
+
+\Input Constants
+^CenterPoke=1
+^LeftPoke=3
+^RightPoke=4
+
+\Variables
+\A(0)=Not Used
+\A(1)=Not Used
+\A(2)=Not Used
+\A(3)=Patch Change Delay
+\A(4)=Inter Reward Delay
+\A(5)=First Reward Delay
+\A(6)=Patch Starting Water
+\A(7)=Reward Decrease Factor
+\A(8)=Maximum Total Water
+\A(9)=Maximum Session Duration
+
+
+List A=0,0,0,1000,300,0,200,.2,1000,36000
+
+\C Variable                  Function
+\C(0)
+\C(1)
+\C(2),...                    first 10 variables reserved
+\C(10)                       not used
+\C(11)                       not used
+\C(12)                       not used
+\C(13)                       Patch Change Delay
+\C(14)                       Inter Reward Delay
+\C(15)                       First Reward Delay
+\C(16)                       Patch Starting Water
+\C(17)                       Reward Decrease Factor
+\C(18)                       Maximum Total Water
+\C(19)                       Maximum Session Duration
+\C(20)                       Actual Total Water
+\C(21)                       Actual Session Duration
+\C(22)                       not used
+\C(23)                       not used                      
+\C(24)                       not used
+\C(25)                       not used
+\C(26)                       not used
+\C(27)                       not used
+\C(28)                       not used
+\C(29)                       not used
+\
+\C(30)                       Labrat Identifier
+
+\Z-Pulses
+\Z1-Start session
+
+\All Variables used
+\A,C,D,E,L,N,R,W,X,Y
+
+^HouseLight=1
+^CenterLight=2
+^LeftLight=3
+^RightLight=4
+^LeftSonalert=5
+^RightSonalert=6
+^LeftFeeder=7
+^RightFeeder=8 
+
+\ OUTPUT CODES
+\ -1 center stimulus light on
+\ -3 left stimulus light on
+\ -4 right stimulus light on
+\ -7 left feeder on
+\ -8 right feeder on
+
+\ -12 center hole insertion
+\ -13 left feeder insertion
+\ -14 right feeder insertion
+
+\ -20 change patch to other side
+\ -22 center hole withdrawal
+\ -23 left feeder withdrawal
+\ -24 right feeder withdrawal
+
+Dim C=29999
+
+\***************** Timing State Set *****************
+S.S.1,
+ S1,
+  #START: SET I=31; SET C(10)=A(0); SET C(11)=A(1); SET C(12)=A(2);
+          SET C(13)=A(3); SET C(14)=A(4); SET C(15)=A(5); SET C(16)=A(6);
+          SET C(17)=A(7); SET C(18)=A(8); SET C(19)=A(9); SET C(20)=0;
+          SET C(21)=0; --->S2
+
+ S2,
+  #R ^CenterPoke: Z1; --->S3
+
+ S3,
+  .01": ADD C(21); IF (C(21)>=A(9)) [@EndSession,@KeepGoing]
+                      @EndSession: SET C(16)=A(6); SET C(I)=-987.987--->STOPABORTFLUSH
+                      @KeepGoing: --->SX
+
+
+\ ***************** Main State Set *******************
+
+S.S.2,
+ S1,
+  #Z1: --->S2
+
+ S2,
+  .001": ON ^LeftLight; SET C(I)=-3; ADD I; SET C(I)=C(21); ADD I;--->S3
+
+ S3,
+  A(5)#T:---> S5
+  #R ^LeftPoke: SET E=1; --->SX
+  #R ^CenterPoke: IF E=1 [@ChangePatch,@StayPatch]
+                   @ChangePatch: OFF^LeftLight; ON^RightSonalert;
+                                 SET C(I)=-20; ADD I; SET C(I)=C(21); SET Y=(C(21)-X); ADD I; 
+                                 ADD N; SET E=0; SET C(16)=A(6); --->S8
+                   @StayPatch: --->SX
+
+ S4,
+  A(4)#T:---> S5
+  #R ^LeftPoke: SET E=1; --->SX
+  #R ^CenterPoke: IF E=1 [@ChangePatch,@StayPatch]
+                   @ChangePatch: OFF^LeftLight; ON^RightSonalert;
+                                 SET C(I)=-20; ADD I; SET C(I)=C(21); SET Y=(C(21)-X); ADD I; 
+                                 ADD N; SET E=0; SET C(16)=A(6); --->S8
+                   @StayPatch: --->SX
+
+ S5,
+  #R ^LeftPoke: SET E=1; --->S6
+  #R ^CenterPoke: IF E=1 [@ChangePatch,@StayPatch]
+                   @ChangePatch: OFF^LeftLight; ON^RightSonalert;
+                                 SET C(I)=-20; ADD I; SET C(I)=C(21); SET Y=(C(21)-X); ADD I; 
+                                 ADD N; SET E=0; SET C(16)=A(6); --->S8
+                   @StayPatch: --->SX
+
+ S6,
+  .001": ON ^LeftFeeder; SET C(I)=-7; ADD I; SET C(I)=C(21); ADD I; SET C(I)=C(16); ADD I; SET W=C(16)/1.8072; --->S7
+
+ S7,
+  W#T: OFF ^LeftFeeder; IF (C(20)>=A(8)) [@EndSession,@KeepGoing]
+                         @EndSession: SET C(16)=A(6); SET C(I)=-987.987--->STOPABORTFLUSH
+                         @KeepGoing: SET C(20)=C(20)+C(16); SET C(16)=C(16)*(1-A(7)); --->S4
+
+ S8,
+  (A(3)-Y)#T: OFF^RightSonalert; --->S9
+
+ S9,
+  .001": ON ^CenterLight; SET C(I)=-4; ADD I; SET C(I)=C(21); ADD I; --->S10
+
+ S10,
+  A(5)#T:---> S12
+  #R ^CenterPoke: SET E=1; --->SX
+  #R ^LeftPoke: IF E=1 [@ChangePatch,@StayPatch]
+                   @ChangePatch: OFF^CenterLight; ON^RightSonalert;
+                                 SET C(I)=-20; ADD I; SET C(I)=C(21); SET Y=(C(21)-X); ADD I; 
+                                 ADD N; SET E=0; SET C(16)=A(6); --->S15
+                   @StayPatch: --->SX
+
+ S11,
+  A(4)#T:---> S12
+  #R ^CenterPoke: SET E=1; --->SX
+  #R ^LeftPoke: IF E=1 [@ChangePatch,@StayPatch]
+                   @ChangePatch: OFF^CenterLight; ON^RightSonalert;
+                                 SET C(I)=-20; ADD I; SET C(I)=C(21); SET Y=(C(21)-X); ADD I; 
+                                 ADD N; SET E=0; SET C(16)=A(6); --->S15
+                   @StayPatch: --->SX
+
+ S12,
+  #R ^CenterPoke: SET E=1; --->S13
+  #R ^LeftPoke: IF E=1 [@ChangePatch,@StayPatch]
+                   @ChangePatch: OFF^CenterLight; ON^RightSonalert; 
+                                 SET C(I)=-20; ADD I; SET C(I)=C(21); SET Y=(C(21)-X); ADD I; 
+                                 ADD N; SET E=0; SET C(16)=A(6); --->S15
+                   @StayPatch: --->SX
+
+ S13,
+  .001": ON ^RightFeeder; SET C(I)=-8; ADD I; SET C(I)=C(21); ADD I; SET C(I)=C(16); ADD I; SET W=C(16)/1.8072; --->S14
+
+ S14,
+  W#T: OFF ^RightFeeder; IF (C(20)>=A(8)) [@EndSession,@KeepGoing]
+                          @EndSession: SET C(16)=A(6); SET C(I)=-987.987--->STOPABORTFLUSH
+                          @KeepGoing: SET C(20)=C(20)+C(16); SET C(16)=C(16)*(1-A(7));--->S11   
+
+ S15,
+  (A(3)-Y)#T: OFF^RightSonalert;--->S2
+
+\******************* Record Center Responses ***********************
+
+S.S.3,
+ S1,
+  #Z1: --->S2
+
+ S2,
+  #R ^CenterPoke: SET C(I)=-12; ADD I; SET C(I)=C(21); ADD I;--->S3
+
+ S3,
+  #R ^CenterPoke: --->SX
+  .001": SET C(I)=-22; ADD I; SET C(I)=C(21); ADD I; --->S2
+
+\******************* Record Left Responses ***********************
+
+S.S.4,
+ S1,
+  #Z1: --->S2
+
+ S2,
+  #R ^LeftPoke: SET C(I)=-13; ADD I; SET C(I)=C(21); ADD I; ADD L;--->S3
+
+ S3,
+  #R ^LeftPoke: --->SX
+  .001": SET C(I)=-23; ADD I; SET C(I)=C(21); SET X=C(21);ADD I; --->S2
+
+\******************* Record Right Responses ***********************
+
+S.S.5,
+ S1,
+  #Z1: --->S2
+
+ S2,
+  #R ^CenterPoke: SET C(I)=-14; ADD I; SET C(I)=C(21); ADD I; ADD R;--->S3
+
+ S3,
+  #R ^CenterPoke: --->SX
+  .001": SET C(I)=-24; ADD I; SET C(I)=C(21); SET X=C(21); ADD I; --->S2
+
+\*******************Display State Set***********************
+
+S.S.6,
+ S1,
+  #R ^CenterPoke:--->S2
+ S2,
+  1":SHOW 1,NChanges,N, 2,CWater,C(16), 3,TWater,C(20), 4,SesTim,C(21), 5,Timer,X, 6,Val,Y; --->SX
