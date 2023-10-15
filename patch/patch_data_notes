@@ -1,0 +1,31 @@
+Number of patch changes
+
+
+
+Average Time in Patch
+Average Water Volume Rejected by Leaving the Patch
+Total Water Consumed
+-First and Final Patches are not included in the above calculations
+
+
+
+Numer of patch changes = # of changes averaged over 2 sessions
+    o Count the number of -20 instances
+
+Time in patch - mean duration stayed in receptacle before changing to the other
+    o make datapoint pairs class
+
+    o find first -20, throw out all data before hand and begin:
+
+    o if -13 || -14 -> take time stamp
+        o if -13, check for -23 and calc time
+            - if stumble upon another -13 or -14  first, raise error
+        o if -14, check for -24 and calc time
+            - if stumble upon another -13 or -14  first, raise error
+        o remember last data taken so that you can remove it at the end
+
+
+    o return average time spent between them
+
+
+Indifference Point = avg water vol rejected
