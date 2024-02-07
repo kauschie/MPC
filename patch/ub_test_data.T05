@@ -48,7 +48,7 @@ T05
 0
 0
 0
--3         ** i < 50 guard changes
+-3
 1
 -12
 1
@@ -69,40 +69,40 @@ T05
 -7
 964
 96
--23     
-982     *** begin data true
--20     change patch  *** 
-1101    *** TIME OF INITIAL PATCH CHANGE ***
--12         left poke, begin delay timer
+-23
+982
+-20
 1101
--14         or right, he was signaling both
+-12
 1101
--22         take head out of patch
+-14
+1101
+-22
 1204
--24         
+-24
 1204
--13         left nose poke but no patch change (no -20 before)
+-13
 1605
--23         take head out of nose poke
+-23
 1798
--4          right stim light on
+-4
 2183
--12         right/center poke 
+-12
 2373
 -14
 2373
--8          right feeder on - first reward
-2374        
-150         reward volume
--8          right feeder on - second reward
-2860 
-120         reward volume = ( prev * A(7))
+-8
+2374
+150
+-8
+2860
+120
 -22
 3087
 -24
 3087
--20         patch change    (calc rejected amount = prev * A(7))
-3162        patch change time
+-20
+3162
 -13
 3162
 -23
@@ -117,41 +117,41 @@ T05
 3831
 -13
 4141
--3          left light on and reward avail
+-3
 4288
--7          left reward
+-7
 4291
-150         reward vol
--23         left nose poke removal
+150
+-23
 4356
--13         
+-13
 4393
--7          left rewarad
-4777    
-120         reward vol
--7          left reward
-5246        
-96          reward vol
--7          left reward
-5702        
-76.8        reward vol
+-7
+4777
+120
+-7
+5246
+96
+-7
+5702
+76.8
 -23
 5881
 -13
 5944
--7          left reward
+-7
 6147
-61.44       reward vol
+61.44
 -23
 6381
 -13
 6414
--7          left reward
+-7
 6583
-49.152      reward vol
+49.152
 -23
 6753
--20         patch change
+-20
 6878
 -12
 6878

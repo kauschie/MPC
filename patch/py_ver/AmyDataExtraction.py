@@ -3,7 +3,7 @@
 #   Data Extraction from MPC Data Files
 
 import os
-
+from datetime import datetime
 
 class DataParsingError(Exception):
     # Print error to the screen with the GUI or to a log 
@@ -48,14 +48,16 @@ class FileData:
                 raise InvalidProgramError
         except InvalidProgramError:
             print(f"{self.metadata['program']} is unable to be imported as a {type(self).__name__} object")
-        except MetadataError:
-            print(f"The metadata for {self.filename} could not be read")
+        except MetadataError as e:
+            print(f"The metadata for {self.filename} could not be read. With error {e.args}")
         except Exception as e:
             print(f"Unexpected {type(e)} error with {e.args}")
             
         try:
             self._get_data()
+            print("finished getting data")
         except DataParsingError:
+            print("Data Parsing Error")
             self.data = None
         except Exception as e:
             print(f"Unexpected {type(e)} error with {e.args}")
@@ -87,7 +89,7 @@ class FileData:
         while True:
             # print(f"fname is currently: {fname}")
             try:
-                fhand = open(fname)
+                fhand = open(fname, encoding="latin-1")
                 lines = fhand.readlines()
                 fhand.close()
                 return lines
@@ -161,7 +163,7 @@ class FileData:
             'file_name': file_name,
             'start_date': start_date,
             'end_date': end_date,
-            'rat_id': rat_id,
+            'rat_id': str(rat_id),
             'experiment' : experiment,
             'groups' : group,
             'box': box,
@@ -227,7 +229,11 @@ class FileData:
             ## if the line begins with a digit, continue adding the data into the array's list
             if line and words[0][0].isdigit():
                 for word in words[1:]:
-                    array_list.append(int(float(word)))
+                    
+                    if(int(float(word)) == float(word)):
+                        array_list.append(int(float(word)))
+                    else:
+                        array_list.append(float(word))
                 continue
 
             ## If the line starts with a letter and the array flag has already been triggered, 
@@ -245,6 +251,8 @@ class FileData:
             raise DataParsingError(f"Error parsing the data for {self.filename}. I was expecting 26 variables and I found {len(d)}")
 
         self.data = d
+        print(self.data)
+        print(self.data['A'])
 
 ## Notes about adaptations of FR Programs to data structure
 ## Amy FR Program v6 doesnt have variable A(10) - Cue Type
@@ -276,28 +284,82 @@ class PatchFileData(FileData):
         ]
         
         self._dvar_array_ = self.data['C']
-        self._dvar_array_ = [40, 41]
+        self._dvar_indices_ = [20, 21]
         self._dvar_names_ = [
             "TotalWater",
             "SessionDuration"
         ]
         
-        self.cvars = _get_vars(self._cvar_array_, self._cvar_indexes_, self._cvar_names_)
-        self.dvars = _get_vars(self._dvar_array_, self._dvar_indexes_, self._dvar_names_)  
+        self.cvars = _get_vars(self._cvar_array_, self._cvar_indices_, self._cvar_names_)
+        self.dvars = _get_vars(self._dvar_array_, self._dvar_indices_, self._dvar_names_)  
         
         data = self._getPatchData_()
+        # print(f"data: {data}")
         
-        for k,v in data:
-            if type(data[k]) is dict: 
+        for k,v in data.items():
+            if type(v) is dict: 
                 # print out debug here if you want for those arrs if something's not right
                 continue
-            if type(data[k] is list):
+            if type(v) is list:
                 # print out debug here if you want
                 continue
             self.dvars[k] = v
             # debug to test function
-            print(f"{k}: {v}")
+            # print(f"{k}: {v}")
+            # self.dvars[k] = v
+    
+    def write_data(self, fhand):
+        # i = 0
+        for k,v in self.metadata.items():
+            fhand.write(f"{v}, ")
+        for k,v in self.cvars.items():
+            fhand.write(f"{v}, ")
+            # i += 1
+        for k,v in self.dvars.items():
+            fhand.write(f"{v}, ")
+            # i += 1
+        fhand.write("\n")
+    
+    def write_header(self, fhand):
+        # i = 0
+        for k,v in self.metadata.items():
+            fhand.write(f"{k}, ")
+            # i += 1
+        for k,v in self.cvars.items():
+            fhand.write(f"{k}, ")
+            # i += 1
+        for k,v in self.dvars.items():
+            fhand.write(f"{k}, ")
+            # i += 1
+        fhand.write("\n")
+    
           
+    def print_data(self):
+        # i = 0
+        
+        for k,v in self.metadata.items():
+            print(f"{v}", end=", ")
+            # i += 1
+        for k,v in self.cvars.items():
+            print(f"{v}", end=", ")
+            # i += 1
+        for k,v in self.dvars.items():
+            print(f"{v}", end=", ")
+            # i += 1
+        print()
+            
+    def print_header(self):
+        # i = 0
+        for k,v in self.metadata.items():
+            print(f"{k}", end=", ")
+            # i += 1
+        for k,v in self.cvars.items():
+            print(f"{k}", end=", ")
+            # i += 1
+        for k,v in self.dvars.items():
+            print(f"{k}", end=", ")
+            # i += 1
+        print()
     
     def _getPatchData_(self):
         
@@ -305,22 +367,25 @@ class PatchFileData(FileData):
         rewards = dict()    # contains frequency of both left and right rewards
         rejectVols = dict() # list of all reject volumes
         consumedVols = dict() # list of all consumed vols of h20
-        leftRewards = rightRewards = dict() # left/right frequencies
+        leftRewards = dict() # left frequencies
+        rightRewards = dict() # right frequencies
         data = dict()   # output data dictionary
-
+        travel_time = list()
         
         timeList = list()  # times are added to a list so that the last one can be removed at the end of the array
         nullChanges = list()
         
-        leftPoke = rightPoke = 0
+        leftPoke =  0
+        rightPoke = 0
         begin_data = False
         
         
         try:
             for i in range(len(self._dvar_array_)):
-                if (i < 50): continue
+                # if (i < 50): continue
                 
                 # skip data until first patch change
+                if (begin_data == False and i == len(self._dvar_array_)-1): continue # end of array and still hasn't found first patch change (animal is teh suck)
                 if (begin_data == False and self._dvar_array_[i+1] != -20): continue 
                 elif (begin_data == False and self._dvar_array_[i+1] == -20):
                     begin_data = True # signal begin data collection to skip guard clauses
@@ -336,22 +401,40 @@ class PatchFileData(FileData):
                         timeList.append(time["end"] - time["start"])  # add time to times list
                         
                         # check for a null change (no rewards during that patch and they changed)
-                        isEither = rewards.get(time["start"], None)
+                        isEither = rewards.get(str(time["start"]), None)
                         if (isEither is None):
-                            nullChanges.append(time["start"])
+                            nullChanges.append(str(time["start"]))
 
                         time["start"] = self._dvar_array_[i+1]  # mark start time of next epoch
                         
-                # collect reward frequencies with epoch start as hash key        
-                        
+                      
+                    pokeID = self._dvar_array_[i-2] # look ahead and get the poke side
+                    
+                    WD_ID = -23 if pokeID == -14 else -24 
+                    
+                    tempArr = self._dvar_array_[0:i-2]
+                    prevWD_index = lastIndex(tempArr,WD_ID)
+                    if(prevWD_index is not None):
+                        prevWD_t = self._dvar_array_[i-1] - self._dvar_array_[prevWD_index+1]
+                        travel_time.append(prevWD_t)
+                    
+                        # \ -13 left feeder insertion
+                        # \ -14 right feeder insertion
+                        # \ -23 left feeder withdrawal
+                        # \ -24 right feeder withdrawal
+                
+                
+                # collect reward frequencies with epoch start as hash key  
+                key = str(time["start"])
+                
                 if (self._dvar_array_[i] == -7): 
-                    leftRewards[time["start"]] = leftRewards.get(time["start"],0) + 1
-                    rewards[time["start"]] = rewards.get(time["start"],0) + 1
+                    leftRewards[key] = leftRewards.get(key,0) + 1
+                    rewards[key] = rewards.get(key,0) + 1
                     continue
 
                 elif (self._dvar_array_[i] == -8): 
-                    rightRewards[time["start"]] = rightRewards.get(time["start"],0) + 1
-                    rewards[time["start"]] = rewards.get(time["start"],0) + 1
+                    rightRewards[key] = rightRewards.get(key,0) + 1
+                    rewards[key] = rewards.get(key,0) + 1
                     continue
                     
                 elif (self._dvar_array_[i] == -12): 
@@ -366,56 +449,111 @@ class PatchFileData(FileData):
             # TODO ASK IF YOU WANT REWARDS FROM LAST PATCH INCLUDED
             
             # remove data from last patch
-            isLeft = leftRewards.get(time["start"], None)
-            isRight = rightRewards.get(time["start"], None)
-            isEither = rewards.get(time["start"], None)
+            key = str(time["start"])
+            isLeft = leftRewards.get(key, None)
+            # print(f"isLeft: {isLeft}")
+            # print(f"leftRewards: {leftRewards}")
+
+            isRight = rightRewards.get(key, None)
+            # print(f"isRight: {isRight}")
+            # print(f"rightRewards: {rightRewards}")
+
+            isEither = rewards.get(key, None)
+            # print(f"isEither: {isEither}")
+            # print(f"rewards: {rewards}")
+            
             
             if (isLeft):
-                del leftRewards[time["start"]]
+                del leftRewards[key]
+                
             if (isRight):
-                del rightRewards[time["start"]]
+                # print(f"rightRewards: {rightRewards}")
+                # print(f"isRight: {isRight}")
+                # del rightRewards[key]
+                rightRewards.pop(key)
             if (isEither):
-                del rewards[time["start"]]
+                
+                del rewards[key]
             ## no need to remove time from timeList as it wont have been collected
 
             ## average patch time / patch changes
+            
+            # print(f"id: {self.metadata['rat_id']}")
+            # print(f"timeList: {timeList}")
+            # print(f"sum: {sum(timeList)}")
+            # print(f"len(timeList): {len(timeList)}")
+            
             patchChanges = len(timeList)
-            avg = sum(timeList)/patchChanges
+            
+            try:
+                avg = (sum(timeList)/patchChanges)
+            except ZeroDivisionError:
+                avg = 0
+            
             data['patchChanges'] = patchChanges
-            data['AvgPatchTime'] = avg
+            data['AvgPatchTime'] = format(avg, ".3f")
             
             # total rewards on left/right side
-            leftN = len(leftRewards)
+            # leftN = len(leftRewards)
+            leftN = getFreqSum(leftRewards)
             data["LeftRewardDict"] = leftRewards
             data["TotalLeftRewards"] = leftN
-            rightN = len(rightRewards)
+            # rightN = len(rightRewards)
+            rightN = getFreqSum(rightRewards)
             data["TotalRightRewards"] = rightN
             data["RightRewardDict"] = rightRewards
+            
+            totalRewards = getFreqSum(rewards)
+            data["TotalRewards(L+R)"] = totalRewards
 
             decrease_factor = self.cvars["RewardDecreaseFactor"]
             start_volume = self.cvars["PatchStartingWater"]
             
-            for k,v in rewards:
+            # print(f"rewards: {rewards}")
+            
+            for k, v in rewards.items():
+                # print(f"key {k}, value {v}")
                 sv = start_volume
+                # print(f"starting sv: {sv}")
+                # print(f"decrease factor: {decrease_factor}")
                 for i in range(v):
-                    sv = sv * (1-decrease_factor)   
-                    consumedVols[rewards[k]] += sv
-                rejectVols[rewards[k]] = sv
+                    consumedVols[k] = consumedVols.get(k,0) + sv
+                    sv = sv * (1-decrease_factor)  
+                    # print(f"consumedVols[{k}]: {consumedVols[k]}")
+                rejectVols[k] = sv
                 
                 # if sv hasn't decreased, then the vol shouldn't be deducted
-                if (sv < start_volume):
-                    consumedVols[rewards[k]] -= sv
+                # if (sv < start_volume):
+                #     consumedVols[k] -= sv
+                # print(f"Final Consumed Vol: {consumedVols[k]}")
+                # print(f"Final Rejected Vol: {rejectVols[k]}")
             
             data['ConsumedVolDict'] = consumedVols
             data['RejectVolDict'] = rejectVols
-                
-            indifference_pt = sum(rejectVols)/len(rejectVols)
+            
+            try:
+                # indifference_pt = sum(rejectVols)/len(rejectVols)
+                indifference_pt = format((getFreqSum(rejectVols)/len(rejectVols)), ".3f")
+
+            except ZeroDivisionError:
+                indifference_pt = 0
+            
+            # indifference_pt = sum(rejectVols)/len(rejectVols)
             data['IndifferencePoint'] = indifference_pt
-            totalWater = sum(consumedVols) # sanity check with mark's number in data file
-            data['TotalWater'] = totalWater
+            totalWater = getFreqSum(consumedVols) # sanity check with mark's number in data file
+            data['PatchOnlyWater'] = totalWater
             
             data["TimeList"] = timeList
             data["NullChanges"] = nullChanges
+            
+            
+            try:
+                avgTravelTime = (sum(travel_time)/len(travel_time))
+            except ZeroDivisionError:
+                avgTravelTime = 0
+            
+            data["AvgTravelTime"] = avgTravelTime
+            data["TavelTimeList"] = travel_time
 
             return data
                    
@@ -476,18 +614,35 @@ def _get_vars(array, indexes, names):
     
     used when looking up cvar and dvar data from FileData.data"""
     vars = {}
-    try:
-        values = [array[index] for index in indexes]
-        i = 0
-        for column in names:
-            vars[column] = values[i]
-            i += 1
-        return vars
-    except Exception as e:
-            values = None
-            raise GetVarError(f"Error occured on line {i} with args ({e.args}")
+    i = 0
+    # try:
+    # print()
+    values = [array[index] for index in indexes]
+    # print(f"values: {values}")
+    # print(f"names: {names}")
+    # print(f"indexes: {indexes}")
+    for column in names:
+        vars[column] = values[i]
+        i += 1
+    return vars
+    # except Exception as e:
+    #         values = None
+    #         raise GetVarError(f"Error occured on line {i} with args ({e.args}")
     
+def getFreqSum(freqDict):
+    sum = 0
+    for k,v in freqDict.items():
+        sum += v
+    return sum
 
+def lastIndex(listy, pattern):
+    rev = list(reversed(listy))
+    index = None
+    for i in range(len(rev)):
+        if rev[i] == pattern:
+            index = len(rev) - i - 1
+            break
+    return index
 
 # commented out until it needs to be used
 # useful if dvars or cvars are spread through 
@@ -508,17 +663,33 @@ if __name__ == "__main__":
     Database = None
     # n09 = FRFileData('test_data.bak')
     files = []
-    numFilesPerSubject = {}
+    numFilesPerSubject = dict()
     listy = os.listdir('data/')
+    # listy = os.listdir('/mnt/c/my_docs/Coding/MPC/patch/data/')
     for i in range(len(listy)):      # import all files in dir as datafiles and add their data to db
         a = PatchFileData('data/'+listy[i])
+        # a = PatchFileData('/mnt/c/my_docs/Coding/MPC/patch/data/'+listy[i])
         files.append(a)
-        id = a.metadata['rat_id']
-        numFilesPerSubject[id] = numFilesPerSubject.get(numFilesPerSubject[id, 0]) + 1
+        rid = a.metadata['rat_id']
+        # print(f"rid: {rid}")
+        # numFilesPerSubject[rid] = numFilesPerSubject.get(numFilesPerSubject[rid], 0) + 1
         
-    for k,v in numFilesPerSubject:
-        if v != 2: del(numFilesPerSubject[k])
-        print(f"deleting {k} from analysis because there were {v} file(s).")
+    # for k,v in numFilesPerSubject.items():
+    #     if v != 2: del(numFilesPerSubject[k])
+    #     print(f"deleting {k} from analysis because there were {v} file(s).")
+    date_time = datetime.now()
+    dts = date_time.strftime("%y%m%d%H%M%S_patchdata.csv")
+    fhand = open(dts, "w")
+    # print("\n\n*********************************************")
+    files[0].print_header()
+    files[0].write_header(fhand)
+    # print("\n\n*********************************************")
+    for file in files:
+        file.print_data()
+        file.write_data(fhand)
+        
+    fhand.close()   
+        
         
     ## TODO: Am I supposed to average the data across both days?
     

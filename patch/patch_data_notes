@@ -13,7 +13,6 @@ Numer of patch changes = # of changes averaged over 2 sessions
     o Count the number of -20 instances
 
 Time in patch - mean duration stayed in receptacle before changing to the other
-    o make datapoint pairs class
 
     o find first -20, throw out all data before hand and begin:
 
@@ -26,6 +25,12 @@ Time in patch - mean duration stayed in receptacle before changing to the other
 
 
     o return average time spent between them
+
+
+    o -7 = left feeder on
+       # = time feeder went on
+       C(16) Patch starting water
+
 
 
 Indifference Point = avg water vol rejected
