@@ -30,7 +30,7 @@ private:
 public:
     // vars
     MetaData meta;
-    std::unordered_map<std::string, std::vector<std::string>> data;
+    std::unordered_map<std::string, std::vector<std::string> > data;
 
     // foos
     FileData(std::string _fileName_ = "");

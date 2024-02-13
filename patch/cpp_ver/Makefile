@@ -1,7 +1,7 @@
 OBJECTS = ADE.o StringUtil.o FileData.o PatchData.o Tests.o
 
 FLAGS = -Wall
-COMP = g++
+COMP = g++ -g -std=c++17
 
 all: ADE
 
