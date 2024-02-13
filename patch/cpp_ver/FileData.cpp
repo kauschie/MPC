@@ -41,7 +41,7 @@ void FileData::readFile()
     // for data
     bool arrayFlag = false;
     std::string array_char;
-    std::vector<float> array_data;
+    std::vector<std::string> array_data;
     
 
     while(getline(fin, line)) {
@@ -115,7 +115,8 @@ void FileData::readFile()
                 array_char = words[0][0];
 
                 array_data.clear();
-                array_data.push_back(atof(words[1].c_str()));
+                // array_data.push_back(atof(words[1].c_str()));
+                array_data.push_back(words[1]);
 
                 data[array_char] = array_data;
     
@@ -134,7 +135,8 @@ void FileData::readFile()
             } else if (words.size() > 1 && isdigit(words[0][0])) {
                 // push floats onto the vec
                 for (auto it = words.begin()+1; it != words.end(); it++) {
-                    array_data.push_back(atof((*it).c_str()));
+                    // array_data.push_back(atof((*it).c_str()));
+                    array_data.push_back(*it);
                 }
 
             }
@@ -159,7 +161,7 @@ void FileData::printData()
             std::cout << "\n\t";
             int count = 1;
             for (auto & num : m.second) {
-                std::cout << std::setw(8) << num << " ";
+                std::cout << std::setw(12) << num << " ";
                 if (count++ % 5 == 0) std::cout << "\n\t";
             }
         } else {
