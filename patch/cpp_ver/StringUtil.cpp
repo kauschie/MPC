@@ -1,6 +1,7 @@
 #include "StringUtil.h"
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 
 
 namespace StringUtil
@@ -127,5 +128,11 @@ namespace StringUtil
         ss << " }";
 
         std::cout << ss.str() << std::endl;
+    }
+
+    std::vector<std::string> makeStrNum(float val) {
+        std::stringstream ss;
+        ss << std::setprecision(3) << std::fixed << val;
+        return std::vector<std::string>(ss.str());
     }
 }

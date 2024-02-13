@@ -57,6 +57,7 @@ void StringUtil_Test()
         tok = StringUtil::lower(tok);
         std::cout << tok << " ";
     }
+
     std::cout << "\nTesting upper on tokens: ";
     for (auto & tok : tokens) {
         tok = StringUtil::upper(tok);
@@ -69,6 +70,19 @@ void StringUtil_Test()
     std::cout << "line2 tokens without split:\n";
     StringUtil::print_tokens(tokens);
     std::cout << "Number of line2 tokens without delim spaces: " << tokens.size() << std::endl;
+
+
+    std::vector<float> nums = {1, 23.5, 256.66666666, -5.768};
+    for (auto & num : nums) {
+        std::cout << StringUtil::makeStrNum(num) << ' ';
+    }
+    std::cout << std::endl;
+
+    std::vector<int> nums2 = {6, 7, 8, 9, 10};
+    for (auto & num : nums2) {
+        std::cout << StringUtil::makeStrNum(num) << ' ';
+    }
+    std::cout << std::endl;
 
 }
 

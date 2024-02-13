@@ -1,4 +1,5 @@
 #include "PatchData.h"
+#include "StringUtil.h"
 #include <string>
 
 
@@ -60,6 +61,8 @@ std::string PatchData::findLastOccurrence(int idx, std::string wd_id) {
     }
     return ""; // wd_id not found
 }
+
+
 
 
 void PatchData::analyze()
@@ -146,8 +149,11 @@ void PatchData::analyze()
     if (isEither)
         rewards.erase(key);
 
+    // No need to remove time from timeList as it wont have been collected
 
-    
+    // Avg (Patch time / patch changes)
+
+    data['patchChanges'] = StringUtil::makeStrNum(timeList.size());
 
 
 }

@@ -22,5 +22,7 @@ namespace StringUtil
     
     void print_tokens(std::vector<std::string> tokens);
 
+    std::vector<std::string> makeVecStrNum(float val);
+
 } // namespace StringUtil
 
