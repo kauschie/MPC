@@ -1,4 +1,4 @@
-OBJECTS = ADE.o StringUtil.o FileData.o PatchData.o Tests.o
+OBJECTS = ADE.o StringUtil.o FileData.o PatchData.o Tests.o HelperFoo.o
 
 FLAGS = -Wall
 COMP = g++ -g -std=c++17
@@ -23,6 +23,8 @@ PatchData.o: PatchData.cpp
 Tests.o: Tests.cpp
 	$(COMP) -c Tests.cpp
 
+HelperFoo.o: HelperFoo.cpp
+	$(COMP) -c HelperFoo.cpp
 
 clean:
 	rm ADE *.o

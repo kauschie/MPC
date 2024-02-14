@@ -37,7 +37,6 @@ class PatchData : public FileData
 
         // private member functions
         void analyze();
-        
 
     public:
         // member vars
@@ -54,6 +53,7 @@ class PatchData : public FileData
         
         // member functions
         PatchData(std::string _filename_);
+        
         
 
 

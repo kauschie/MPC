@@ -1,6 +1,7 @@
 #include "PatchData.h"
 #include "StringUtil.h"
 #include <string>
+#include <bits/stdc++.h>
 
 
 /************************
@@ -153,8 +154,16 @@ void PatchData::analyze()
 
     // Avg (Patch time / patch changes)
 
-    data['patchChanges'] = StringUtil::makeStrNum(timeList.size());
 
+    // set either to 0 (avoid div by zero error) or the avg
+    float avg = std::accumulate(timeList.begin(), timeList.end(), 0);
+    avg = (timeList.size() == 0) ? 0 : (avg/timeList.size());
+    
+    // convert to strings for the map
+    data["patchChanges"] = StringUtil::makeVecStrNum(timeList.size());
+    data["AvgPatchTime"] = StringUtil::makeVecStrNum(avg);
+
+    
 
 }
 

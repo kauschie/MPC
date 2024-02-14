@@ -8,6 +8,7 @@
 #include "FileData.h"
 #include "PatchData.h"
 #include "Tests.h"
+#include "HelperFoo.h"
 
 void StringUtil_Test()
 {
@@ -46,6 +47,7 @@ void StringUtil_Test()
     }
     std::cout << std::endl;
 
+
     tokens.clear();
     tokens = StringUtil::split(line2, ':');
     std::cout << "line2 tokens:\n";
@@ -74,15 +76,29 @@ void StringUtil_Test()
 
     std::vector<float> nums = {1, 23.5, 256.66666666, -5.768};
     for (auto & num : nums) {
-        std::cout << StringUtil::makeStrNum(num) << ' ';
+        std::cout << StringUtil::makeVecStrNum(num)[0] << ' ';
     }
     std::cout << std::endl;
 
     std::vector<int> nums2 = {6, 7, 8, 9, 10};
     for (auto & num : nums2) {
-        std::cout << StringUtil::makeStrNum(num) << ' ';
+        std::cout << StringUtil::makeVecStrNum(num)[0] << ' ';
     }
     std::cout << std::endl;
+
+
+    std::unordered_map<std::string, int> um;
+    um["nums1"] = 5;
+    um["nums2"] = 10;
+    um["nums3"] = 15;
+
+    std::cout << std::endl << "Printing some nums in a unordered map:\n\t";
+    for (auto & m : um) {
+        std::cout << m.first << ": " << m.second << "\n\t";
+    }
+    std::cout << "Sum: " <<  hf::getFreqSum(um) << std::endl;
+
+
 
 }
 

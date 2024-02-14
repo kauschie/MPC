@@ -130,9 +130,9 @@ namespace StringUtil
         std::cout << ss.str() << std::endl;
     }
 
-    std::vector<std::string> makeStrNum(float val) {
+    std::vector<std::string> makeVecStrNum(float val) {
         std::stringstream ss;
         ss << std::setprecision(3) << std::fixed << val;
-        return std::vector<std::string>(ss.str());
+        return std::vector<std::string>{ss.str()};
     }
-}
+} // namespace StringUtil
