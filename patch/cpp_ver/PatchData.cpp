@@ -1,5 +1,6 @@
 #include "PatchData.h"
 #include "StringUtil.h"
+#include "HelperFoo.h"
 #include <string>
 #include <bits/stdc++.h>
 
@@ -159,11 +160,22 @@ void PatchData::analyze()
     float avg = std::accumulate(timeList.begin(), timeList.end(), 0);
     avg = (timeList.size() == 0) ? 0 : (avg/timeList.size());
     
-    // convert to strings for the map
+    // convert to vector of strings for the map
     data["patchChanges"] = StringUtil::makeVecStrNum(timeList.size());
     data["AvgPatchTime"] = StringUtil::makeVecStrNum(avg);
 
+    // total rewards on lef/right side
+    data["TotalLeftRewards"] = StringUtil::makeVecStrNum(hf::getFreqSum(leftRewards));
+    data["TotalRightRewards"] = StringUtil::makeVecStrNum(hf::getFreqSum(rightRewards));
+    data["TotalRewards"] = StringUtil::makeVecStrNum(hf::getFreqSum(rightRewards));
     
+    // get consumed volume and rejected volumes
+    float decrease_factor  = std::stof(cvars["RewardDecreaseFactor"]);
+    float start_volume = std::stof(cvars["PatchStartingWater"]);
+
+    
+
+
 
 }
 
