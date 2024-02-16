@@ -3,10 +3,7 @@
 \\ By Michael A. Kausch
 \\ Features:- Dark Box recording nose poke behavior
 \\          - Bins Data
-\\ V2         
-\\	    - Fixed response counting before session start
-\\ V3  5/6/21
-\\ rewrote program to accomodate continuous input signals (Level mode)
+\\		- Fixed response counting before session start
 
 
 \\Inputs
@@ -19,8 +16,8 @@
 ^RStimLight = 2
 ^HouseLight = 3
 ^Pump = 4
-^Sonalert = 5
-^Red = 6
+^Sonalert = 6
+\^Red = 6
 ^Yellow = 7
 ^Green  = 8
 
@@ -33,7 +30,7 @@
 ^RightPokes = 1
 \C   IRT Array
 \D
-\E  
+\E
 \F
 \G
 \H
@@ -53,7 +50,7 @@
 ^BinTimer = 1
 \U
 \V
-\W Partial Beam Break Counter
+\W
 \X
 \Y
 \Z
@@ -87,12 +84,6 @@ S3,
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\\ Left Poke \\\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\Inputs in Level Mode generate an input “count” on each
-\ interrupt. With a 10 ms system resolution 2 counts
-\ will be reached in 20 ms. The Z^Z_NPBreak pulse is used to
-\ signal a completed Beam Break. The second statement resets
-\ the counter every 20 ms so that a partial Beam Break of
-\ less than 20 ms will not constitute a Response.
 
 S.S.2,
 
@@ -102,20 +93,11 @@ S1,
 
 S2,
 
-#R(^LeftPoke): ADD W; IF W >= 2 [@BEAMBREAK, @NOBREAK]
-        @BEAMBREAK: ADD B(^LeftPokes), P(S); SET C(I)=-1, W = 0; ADD I; SET C(I)=T(^SessionTimer); ADD I; SET C(I)=-987.987 ---> S3
-        @NOBREAK: ---> SX
-0.02": SET W = 0 ---> SX
-
-S3,
-
-#R(^LeftPoke): ---> SX
-0.02": ---> S2
+#R(^LeftPoke): ADD B(^LeftPokes), P(S); SET C(I)=-1; ADD I; SET C(I)=T(^SessionTimer); ADD I; SET C(I)=-987.987 ---> SX
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\\ Right Poke \\\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\ See SS2 for details on beam break logic
 
 S.S.3,
 
@@ -125,16 +107,8 @@ S1,
 
 S2,
 
-#R(^RightPoke): ADD W; IF W >= 2 [@BEAMBREAK, @NOBREAK]
-        @BEAMBREAK: ADD B(^RightPokes), Q(S); SET C(I)=-2, W = 0; ADD I; SET C(I)=T(^SessionTimer); ADD I; SET C(I)=-987.987  ---> S3
-        @NOBREAK: ---> SX
-0.02": SET W = 0 ---> SX
+#R(^RightPoke): ADD B(^RightPokes), Q(S); SET C(I)=-2; ADD I; SET C(I)=T(^SessionTimer); ADD I; SET C(I)=-987.987  ---> SX
 
-
-S3,
-
-#R(^RightPoke): ---> SX
-0.02": ---> S2
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\ BIN CTRL \\\\\\\\\\\\\\\\\

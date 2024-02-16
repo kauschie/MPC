@@ -2,12 +2,8 @@
 \\ Started 12-15-2015
 \\ By Michael A. Kausch
 \\ Features: VI Schedule of Reinforcement on Fleshler-Hoffman Progression
-\\ made every stimulus' chance at operating more random
-\\ Reward type is selected at random from G array
-\\ Reward time is selected at random from N array
-\\ Update 10/27/2022
-\\      -- Swapped sonalert output with pump because some boxes have a broken output 5
-\\      -- Pump is now 5 and Sonalert is now 4 for this program
+\\ made every stimulus' chance at operating random
+\\
 
 
 \\Inputs
@@ -19,8 +15,8 @@
 ^LStimLight = 1
 ^RStimLight = 2
 ^HouseLight = 3
-^Pump = 5
-^Sonalert = 4
+^Pump = 4
+^Sonalert = 5
 ^Red = 6
 ^Yellow = 7
 ^Green  = 8
@@ -32,7 +28,7 @@
 ^SLRT2ON = 3   \ time that the beep sonalert is on
 ^SLRT2OFF = 4  \ time that the beep sonalert is off
 ^SLRT2CYC = 5  \ number of cycles of 6 and 7
-^BinDuration = 6  \ Bin Time Size in centiseconds
+^BinDuration = 6  \ Bin Time Size in centi-seconds
 
 
 \B  Data Array
@@ -45,7 +41,7 @@
 \D  Current VI Variable
 \E   Error Array
 \F
-\G   Reward Chance Array
+\G   Reward Array
 \H
 \I   C Array Counter
 \J   Current Reward Type
@@ -77,16 +73,16 @@
 \S  Bin Counter
 \T
 ^SessionTimer  = 0
-^VITimer       = 1      \\ Variable Interval Timer
-^RTimer        = 2      \\ Red Timer
-^YTimer        = 3      \\ Yellow Timer
-^GTimer        = 4      \\ Green Timer
-^HLTimer       = 5      \\ House Light Timer
-^TSLRT1         = 6     \\ Timer SonaLeRT 1
-^TSLRT2         = 7     \\ Timer SonaLeRT 2
+^VITimer       = 1
+^RTimer        = 2
+^YTimer        = 3
+^GTimer        = 4
+^HLTimer       = 5
+^TSLRT1         = 6
+^TSLRT2         = 7
 ^BinTimer       = 8
-^TLSL           = 9     \\ Timer Left Stim Light
-^TRSL           = 10    \\ Timer Right Stim Light
+^TLSL           = 9
+^TRSL           = 10
 
 \U
 \V
@@ -108,8 +104,7 @@ DIM P=1000
 DIM Q=1000
 DIM R=1000
 
-\\ O is a array of two values for a 1/2 chance in the sonalert state sets
-\\ G is an array of values for chance, results in a 1/6 chance
+
 
 LIST K = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
 LIST G = 0, 1, 2,3,4,5
@@ -138,12 +133,6 @@ S3,
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\ VI Control \\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\ initializes K array to a progression defined by the hoffman-fleschler
-\\ constant probability distribution with A(^VIMean) being the mean value of the array
-\\ randomly (without replacement) selects a time from K array and sets it equal to D
-\\ VI timer then checks if the interval has reached D, the random time
-\\ SS loops and reselects a new random time D
-\\ No control in this SS regarding ending the program
 
 S.S.2,
 
@@ -159,7 +148,6 @@ S3,
 
 0.01": ADD T(^VITimer); IF T(^VITimer) >= D  [@VIOver]
                 @VIOver: SET T(^VITimer)=0; RANDD D = K ---> S4
-
 
 S4,
 
@@ -274,8 +262,6 @@ S.S.8,
 
 S1,
 
-\\ After Z_reward signal is issued, program checks if 
-
 #Z^Z_Reward: RANDI J(7)=G; IF J(7) = 1 [@ON, @OFF]
               @ON: RANDI J(6)=O; IF J(6) >= 1 [@SONALERT1, @SONALERT2]
                       @SONALERT1: ON ^Sonalert; RANDI L(^LSLRT) = N ---> S3
@@ -366,20 +352,15 @@ S.S.12,
 
 S1,
 
-0.01":     SHOW 1,VI TIMER,T(^VITimer), 2,VI,D, 3,Active Pokes,B(^ActivePokes), 4,Rewards,B(^Rewards), 5,Time Remaining,(A(^SessionDuration)-T(^SessionTimer));
-        SHOW 6,Inactive Pokes,B(^InactivePokes);
+0.01":     SHOW 1,VI TIMER,T(^VITimer), 6,VI,D, 2,Active Pokes,B(^ActivePokes), 4,Rewards,B(^Rewards), 5,Time Remaining,(A(^SessionDuration)-T(^SessionTimer));
+        SHOW 3,Inactive Pokes,B(^InactivePokes);
         SHOW 11,Green,J(0), 12,Red,J(1), 13,Yellow,J(2), 14,House Light,J(3), 15,L Stim Light,J(4);
-        SHOW 16,R Stim Light,J(5), 17,Sonalert Active?,J(7), 18,Solid or Beep,J(6) ---> SX
+        SHOW 16,R Stim Light,J(5), 17,Sonalert Active?,J(7), 18,Beep (0) Solid (1),J(6) ---> SX
 
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\\\\\\\\\\\\ NULL REWARD\\\\\\\\\\\\\\\\\
+\\\\\\\\\\ DEFAULT REWARD\\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-
-\\ Comment added: 10/27/22
-\\ I don't have time to fully investigate but from what I remember
-\\ there's a small chance that no reward is selected due to random probability of selecting the Rewards
-\\ I think that this state set ensures that that a Z_VIStart signal is sent after 5"
 
 S.S.13,
 
@@ -391,5 +372,15 @@ S1,
 S2,
 
 #Z^Z_VIStart: ---> S1
-5": Z^Z_VIStart ---> S1
+1": IF (J(0)=1) OR (J(1)=1) OR (J(2)=1) OR (J(3)=1) OR (J(4)=1) OR (J(5)=1) OR (J(7)=1)  [@StimulusExists, @default]
+        @StimulusExists: ---> S1
+        @default: ON ^Yellow; RANDI L(^LYellow) = N ---> S3
+
+S3,
+
+#Z^Z_VIStart: SET T(^YTimer)=0; OFF ^Yellow ---> S1
+0.01": ADD T(^YTimer); IF T(^YTimer) >= L(^LYellow) [SET T(^YTimer)=0; OFF ^Yellow; Z^Z_VIStart] ---> S1
+
+
+
 

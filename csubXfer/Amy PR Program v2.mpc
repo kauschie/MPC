@@ -1,56 +1,26 @@
 \\ Amy Fixed Ratio Self-Admin Program
 \\ Programmed by Mike Kausch
-\\ April 10th, 2012
-\\ Revised May 7, 2012
-\\ Revision Notes:
-\\ Update May 20, 2021
-\\ - No longer doing versions (v#) because it's been switched to a git repository
-\\ - Added "Level" Control Logic to support continuous input signals
-\\ V8
-\\  - changed sonalert to output 6 (probably because a box has a bad output)
-\\  - added ability to have sonalert and stim light both presented
-\\ V7 
-\\ -added sonalert cue and a macro variable to select between cues
-\\ 
-\\ V6
-\\ -fixed binning of data
-\\ V5
-\\ -removed sonalert functionality from being activated when a reward is presented
-\\ -updated inputs / outputs for dr. gancarz-kausch's new boxes
-\\ V4s
-\\  -first addition to version control repository
-\\  -cannot find an earlier version of the program
-\\ V3
-\\ -Added Time left to the display
-\\ -Increased the C Array to handle ~6000max Responses
-\\ -Added discrimination of responses between time in and time out periods
-\\ V2
-\\ -Fixed Timers so that 0 is an acceptable time input
-\\ -All Data written to C Array
-
-
-\ IRT Codes
-\ -9 = Active Poke 
-\ -8 = Active Poke during time out
-\ -4 = Inactive Poke
-\ -3 = Inactive Poke during time out
+\\ April 18th, 2014
+\\ Updated February 20th, 2017
+\\ Changes: configured program to Dr. Gancarz-Kausch's new Box's at CSUB
+\\ Added sonalert funcationality
+\\ fixed bug where sonalert / stim light weren't activating
 
 
 \\Inputs
-^LeftPoke = 1
-^RightPoke = 2
+^LeftNosePoke = 1
+^RightNosePoke = 2
 ^MiddlePoke = 3
 
 \\Outputs
-^LStimLight = 1
-^RStimLight = 2
+^LeftStimLight = 1
+^RightStimLight = 2
 ^HouseLight = 3
 ^Pump = 4
 ^Sonalert = 6
 \^Red = 6
 ^Yellow = 7
 ^Green  = 8
-
 
 \\Variables
 \A Array - Program Variables
@@ -59,12 +29,13 @@
 ^InactivePoke = 2 \ set automatically by the program depending on activepoke's setting
 ^FR = 3 \ Fixed Ratio Value
 ^MaxInf = 4 \ whole number values
-^LightDuration = 5 \ duration of the cue, either the light or the sonalert (centiseconds)
+^LightDuration = 5 \ centiseconds
 ^PumpDuration = 6 \ centiseconds
 ^TimeOut = 7
-^BinDuration = 8
+^Bintime = 8
 ^Binnum = 9
-^CueType = 10	\ 1 for stimulus light, 2 for sonalert
+^PRTimeout = 10 \ session time out - ends session if rat doesn't complete ratio in this amount of time (centiseconds)
+^CueType = 11 \ 1 for stimulus light, 2 for sonalert
 
 \B Array - Data
 ^ActR = 0 \ counts responses to active side
@@ -73,6 +44,8 @@
 ^SessionEnd = 3
 ^InactRTO = 4
 ^ActRTO = 5
+^PRResp = 6
+^PRatio = 7
 
 
 \C Array - IRT Array
@@ -89,20 +62,18 @@
 \N - Data Writer Variable
 \O
 \P
-\Q
-\R
+\Q - Progressive Ratio Array
+\R - Progressive Ratio Counter
 \S
 \T - Timer  Array
 ^SessionTimer = 0
 ^StimLightTimer = 1
 ^PumpTimer = 2
 ^TOTimer = 3
-^BinTimer = 4
+^STOTimer = 4
 \U
 \V
-\W - Poke Counters 
-\W(0) - active counter
-\W(1) - inctive counter
+\W
 \X
 \Y
 \Z-Signals
@@ -112,18 +83,17 @@
 ^Z_Stop = 4
 ^Z_Data = 5
 ^Z_StartBC = 6
-^Z_aPoke = 7
-^Z_iPoke = 8
+^Z_STOReset = 7
 
-DIM A = 10
-DIM B = 6
+DIM A = 11
+DIM B = 7
 DIM C = 99999
 DIM D = 1000
 DIM F = 1000
 DIM G = 1000
-DIM J = 3
-DIM T = 5
-DIM W = 1
+DIM J = 2
+DIM Q = 25
+DIM T = 4
 
 
 
@@ -135,7 +105,7 @@ S.S.1,
 
 S1,
 
-0.01": SET M=0, I=420,  ---> S2
+0.01": SET M=0, I=420, R=0  ---> S2
 
 S2,
 
@@ -143,13 +113,14 @@ S2,
 
 S3,
 
-0.01": ADD T(^SessionTimer); IF T(^SessionTimer)>=A(^SessionDuration) [@True, @False]
+0.01": ADD T(^SessionTimer); IF T(^SessionTimer)=A(^SessionDuration) [@True, @False]
     @T: Z^Z_Stop; SET B(^SessionEnd)=T(^SessionTimer)---> S4
     @F: ---> S3
-#Z^Z_Stop: SET B(^SessionEnd)=T(^SessionTimer) ---> S4
+#Z^Z_Stop: SET B(^SessionEnd)=T(^SessionTimer), B(^PRResp) = K, B(^PRatio) = Q(R) ---> S4
 
 S4,
 5":---> STOPABORTFLUSH
+
 
 
 
@@ -194,8 +165,8 @@ S1,
 S2,  \\ During Time In
 
 #Z^Z_Stop: ---> S4
-#Z^Z_aPoke: ADD B(^ActR), K; IF K>=A(^FR) [@IssueReward, @Continue]
-    @Reward: SET K=0; ADD B(^Inf); Z^Z_Reward; IF B(^Inf)=A(^Maxinf) [@end, @cont]
+#RA(^ActivePoke): ADD B(^ActR), K; IF K=Q(R) [@IssueReward, @Continue]
+    @Reward: SET K=0; ADD B(^Inf), R; Z^Z_Reward; Z^Z_STOReset; IF B(^Inf)=A(^Maxinf) [@end, @cont]
         @End: Z^Z_Stop ---> S4
         @Cont: ---> S3
     @Cont: ---> S2
@@ -204,7 +175,7 @@ S3,  \\ During Time Out
 
 #Z^Z_Stop: ---> S4
 #Z^Z_TimeIn: ---> S2
-#Z^Z_aPoke: Add B(^ActRTO) ---> SX
+#RA(^ActivePoke): Add B(^ActRTO) ---> SX
 
 S4, \\ End of Program
 
@@ -227,7 +198,7 @@ S2,
 
 #Z^Z_Stop: ---> S3
 #Z^Z_Reward: ---> S4
-#Z^Z_iPoke: ADD B(^InactR) ---> SX
+#RA(^InactivePoke): ADD B(^InactR) ---> SX
 
 S3,
 
@@ -237,78 +208,22 @@ S4,
 
 #Z^Z_Stop: ---> S3
 #Z^Z_TimeIn: ---> S2
-#Z^Z_iPoke: ADD B(^InactRTO) ---> SX
+#RA(^InactivePoke): ADD B(^InactRTO) ---> SX
 
 
+\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\Cue Control\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\
 
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\\\\NosePoke Level Control\\\\\
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-
-
-\\***************************************************
-\ BEAM BREAK DEFINED - 20ms BREAK, 20ms RELEASE
-\***************************************************
-\ Inputs in Level Mode generate an input "count" on each
-\ interrupt. With a 10 ms system resolution 2 counts
-\ will be reached in 20 ms. The Z3 pulse is used to
-\ signal a completed Beam Break. The second statement resets
-\ the counter every 20 ms so that a partial Beam Break of
-\ less than 20 ms will not constitute a Response.
-
-S.S.11,
-
-S1,
-
-#Z^Z_Start: ---> S2
-
-S2,
-
-#RA(^ActivePoke): ADD W(0); IF W(0) >= 2 [Z^Z_aPoke; SET W(0) = 0] ---> S3
-#RA(^InactivePoke): ADD W(1); IF W(1) >= 2 [Z^Z_iPoke; SET W(1) = 0] ---> S4
-
-S3,
-
-\ As long as the Beam is broken the second statement
-\ causes a re-entry to this State. This resets the
-\ the internal 20 ms timer so it never times out. When
-\ the Beam is released for 20 ms the timer times out
-\ and a Z4 pulse signals the release.
-\ 3rd statement allows for simultaneous responses in case a tail 
-\ or something accidentally trips the first response
-
-0.02": ---> S2
-#RA(^ActivePoke): ---> S3
-#RA(^InactivePoke): Z^Z_iPoke ---> S5
-
-S4,
-
-0.02": ---> S2
-#RA(^ActivePoke): Z^Z_aPoke ---> S5
-#RA(^InactivePoke): ---> S3
-
-S5,
-
-0.02": ---> S2
-#RA(^ActivePoke): ---> S5
-#RA(^InactivePoke): ---> S5
-
-
-
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-\\\\\\\\\\\\\  Cue  Control  \\\\\\\\\\\
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 S.S.5,
 
 S1,
 
 #START: IF A(^LightDuration)>0 [@notzero]
-    @notzero: IF A(^CueType) = 1 [@stimlight, @next] 
+    @notzero: IF A(^CueType) = 1 [@stimlight, @sonalert] 
 				@stimlight: ---> S2
-				@next: IF A(^CueType) = 2 [@sonalert, @both] 
-					@sonalert: ---> S4
-					@both: IF A(^CueType) = 3 [] ---> S6
+				@sonalert: IF A(^CueType) = 2 [] ---> S4
 
 S2,
 
@@ -329,16 +244,7 @@ S5,
 0.01": ADD T(^StimLightTimer); IF T(^StimLightTimer) >= A(^LightDuration) [@Off, @cont]
     @Off: OFF ^Sonalert; SET T(^StimLightTimer)=0 ---> S4
     @cont: ---> SX	
-	
-S6,
-
-#Z^Z_Reward: ON ^Sonalert, A(^ActivePoke) ---> S7
-
-S7,
-
-0.01": ADD T(^StimLightTimer); IF T(^StimLightTimer) >= A(^LightDuration) [@Off, @cont]
-    @Off: OFF ^Sonalert, A(^ActivePoke); SET T(^StimLightTimer)=0 ---> S6
-    @cont: ---> SX	
+		
 	
 \\\\\\\\\\\\\\\\\\\\\\\\\
 \\\Syringe Pump Control\\\
@@ -375,17 +281,9 @@ S1,
 
 S2,
 
-#Z^Z_Reward: ADD G(J(2)); SET C(M) = T(^SessionTimer); ADD M ---> S3
-#Z^Z_aPoke: ADD D(J(0)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -9; ADD I; SET C(I) = -987.987 ---> SX
-#Z^Z_iPoke: ADD F(J(1)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -4; ADD I; SET C(I) = -987.987 ---> SX
-
-
-S3, 
-
-#Z^Z_TimeIn: ---> S2
-#Z^Z_aPoke: ADD D(J(0)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -8; ADD I; SET C(I) = -987.987 ---> SX
-#Z^Z_iPoke: ADD F(J(1)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -3; ADD I; SET C(I) = -987.987 ---> SX
-
+#RA(^ActivePoke): ADD D(J(0)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -9; ADD I; SET C(I) = -987.987 ---> SX
+#RA(^InactivePoke): ADD F(J(1)); SET C(I) = T(^SessionTimer); ADD I; SET C(I) = -4; ADD I; SET C(I) = -987.987 ---> SX
+#Z^Z_Reward: ADD G(J(2)); SET C(M) = T(^SessionTimer); ADD M ---> SX
 
 \\\\\\\\\\\\\\\\\\
 \\\Show Commands\\\
@@ -395,13 +293,15 @@ S.S.8,
 
 S1,
 
-0.01":     SHOW 1,Active Responses,B(^ActR);
-    SHOW 2,Inactive Responses,B(^InactR);
-    SHOW 3,Infusions,B(^Inf);
-    SHOW 4,Session Time,T(^SessionTimer);
+0.01":     SHOW 1,Rsp to next Reward,(Q(R)-K);
+	SHOW 2,Current Ratio,Q(R);
+	    SHOW 3,Infusions,B(^Inf);
+    SHOW 4,Timeout Timer,T(^STOTimer);
     SHOW 5,Time Remaining,((A(^SessionDuration)-T(^SessionTimer))/6000);
-    SHOW 6,ActRsp TO,B(^ActRTO);
-    SHOW 7,InactRsp TO,B(^InactRTO) ---> SX
+    SHOW 6,Active Responses,B(^ActR);
+    SHOW 7,ActRsp TO,B(^ActRTO);
+    SHOW 8,Inactive Responses,B(^InactR);
+    SHOW 9,InactRsp TO,B(^InactRTO) ---> SX
 
 
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -439,7 +339,7 @@ S.S.10,
 
 S1,
 
-#Start: IF A(^BinDuration) > 0 [@calcbins, @nobin]
+#Start: SET A(^BinTime) = A(^BinTime)*1"; IF A(^Binnum) > 0 [@calcbins, @nobin]
             @calcbins: ---> S2
             @nobins: ---> SX
 
@@ -452,18 +352,39 @@ S3,        \\ ****Alter to look more pretty on printout
 
 #Z^Z_Stop: ADD J(0), J(1), J(2); SET D(J(0)+1) = -987.987, F(J(1)+1) = -987.987, G(J(2)+1) = -987.987 ---> S2
 
-0.01": ADD T(^BinTimer); IF T(^BinTimer) >= A(^BinDuration) [@end, @cont]
-    @end: ADD J(0), J(1), J(2), L; IF L > A(^Binnum) [@end, @cont]
+A(^BinTime)#T: ADD J(0), J(1), J(2), L; IF L > A(^Binnum) [@end, @cont]
                         @end: SET L=0, D(J(0))=0, F(J(1))=0, G(J(2))=0 ---> S2
-                        @cont: SET D(J(0))=0, F(J(1))=0, G(J(2))=0, T(^BinTimer)=0 ---> S3
-    @cont: ---> S3
-
-	
+                        @cont: SET D(J(0))=0, F(J(1))=0, G(J(2))=0 ---> S3
 
 
 
+\\\\\\\\\\\\\\\\\\\\\\\\\
+\\Session Timeout Timer\\
+\\\\\\\\\\\\\\\\\\\\\\\\\
 
+S.S.11,
 
+S1,
+
+0.01": ---> S2
+
+S2,
+
+#START: IF A(^PRTimeout) > 0 [] ---> S3
+
+S3,
+
+#Z^Z_STOReset: SET T(^STOTimer) = 0; IF R=27 [@End_of_array, @cont]
+		@end: Z^Z_Stop ---> S4
+		@cont: ---> SX
+
+0.01": ADD T(^STOTimer); IF T(^STOTimer) >= A(^PRTimeout) [@end, @cont]
+			@end: Z^Z_Stop ---> S4
+			@cont: ---> SX
+
+S4,
+
+5": ---> SX
 
 
 

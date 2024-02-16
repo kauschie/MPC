@@ -15,8 +15,8 @@
 ^RStimLight = 2
 ^HouseLight = 3
 ^Pump = 4
-^Sonalert = 5
-^Red = 6
+^Sonalert = 6
+\^Red = 6
 ^Yellow = 7
 ^Green  = 8
 
