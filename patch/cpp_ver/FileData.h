@@ -35,6 +35,7 @@ public:
     // foos
     FileData(std::string _fileName_ = "");
     void printData();
+    void printMetaData();
 
 
 };

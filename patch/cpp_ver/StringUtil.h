@@ -24,5 +24,10 @@ namespace StringUtil
 
     std::vector<std::string> makeVecStrNum(float val);
 
+    std::vector<std::string> ftosVec(const std::vector<float> & v); 
+
+    void prettyWrite(std::string, std::string);
+
+
 } // namespace StringUtil
 

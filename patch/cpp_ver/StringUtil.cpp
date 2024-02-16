@@ -130,9 +130,33 @@ namespace StringUtil
         std::cout << ss.str() << std::endl;
     }
 
+    // takes a single float and returns it as a vector containing one
+    // float represented as a string. necessary for cohesion with the data
+    // unordered_map 
     std::vector<std::string> makeVecStrNum(float val) {
         std::stringstream ss;
         ss << std::setprecision(3) << std::fixed << val;
         return std::vector<std::string>{ss.str()};
     }
+
+    // takes a vec of floats and converts to a vec of strings
+    std::vector<std::string> ftosVec(const std::vector<float> & v)
+    {
+        std::vector<std::string> sv;
+        std::stringstream ss;
+
+        for (auto & ele : v) {
+            ss << std::setprecision(6) << ele;
+            sv.push_back(ss.str());
+            ss.str("");
+        }
+        return sv;
+    }
+
+    void prettyWrite(std::string k, std::string v)
+    {
+        std::cout << std::left << std::setw(20) 
+        << k << std::right << std::setw(20) << v << std::endl;
+    }
+
 } // namespace StringUtil

@@ -32,7 +32,7 @@ class PatchData : public FileData
 
         // private member vars
         bool beginData = false;
-       std::string findLastOccurrence(int idx, std::string wd_id);
+        std::string findLastOccurrence(int idx, std::string wd_id);
 
 
         // private member functions
@@ -53,6 +53,8 @@ class PatchData : public FileData
         
         // member functions
         PatchData(std::string _filename_);
+        void printCvars();
+        void printDvars();
         
         
 
