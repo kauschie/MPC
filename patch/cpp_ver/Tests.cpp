@@ -10,6 +10,9 @@
 #include "Tests.h"
 #include "HelperFoo.h"
 
+// #define DEBUG 
+
+
 void StringUtil_Test()
 {
 
@@ -107,63 +110,27 @@ void FileData_test()
 
     FileData rat1("../testdata/!2024-02-07_07h13m.Subject Q53");
 
-    std::cout << "filename: " << rat1.meta.file_name << std::endl;
-    std::cout << "start_date: " << rat1.meta.start_date << std::endl;
-    std::cout << "end_date: " << rat1.meta.end_date << std::endl;
-
-    std::cout << "meta.rat_id: " << rat1.meta.rat_id << std::endl;
-    std::cout << "meta.experiment: " << rat1.meta.experiment << std::endl;
-    std::cout << "meta.group: " << rat1.meta.group << std::endl;
-    std::cout << "meta.box: " << rat1.meta.box << std::endl;
-    std::cout << "meta.start_time: " << rat1.meta.start_time << std::endl;
-    std::cout << "meta.end_time: " << rat1.meta.end_time << std::endl;
-    std::cout << "meta.program: " << rat1.meta.program << std::endl;
+    rat1.printMetaData();
     rat1.printData();
 
 }
 
 void PatchData_test()
 {
-    std::cout << "*************     ^^^^^     ***************" << std::endl;
-    std::cout << "          FileData Functionality           " << std::endl;
-    std::cout << "*************     ^^^^^     ***************" << std::endl << std::endl;
     // all of the FileData functionality should still work
-    PatchData rat1("../testdata/!2024-02-07_07h13m.Subject Q53");
-
-    std::cout << "filename: " << rat1.meta.file_name << std::endl;
-    std::cout << "start_date: " << rat1.meta.start_date << std::endl;
-    std::cout << "end_date: " << rat1.meta.end_date << std::endl;
-
-    std::cout << "meta.rat_id: " << rat1.meta.rat_id << std::endl;
-    std::cout << "meta.experiment: " << rat1.meta.experiment << std::endl;
-    std::cout << "meta.group: " << rat1.meta.group << std::endl;
-    std::cout << "meta.box: " << rat1.meta.box << std::endl;
-    std::cout << "meta.start_time: " << rat1.meta.start_time << std::endl;
-    std::cout << "meta.end_time: " << rat1.meta.end_time << std::endl;
-    std::cout << "meta.program: " << rat1.meta.program << std::endl;
+    PatchData rat1("../testdata/!2023-10-10_14h18m.Subject B01");
+   
+#ifdef DEBUG
     rat1.printData();
+#endif // DEBUG
+
 
     // test PatchData functionality
 
-    std::cout << std::endl << "*************     vvvvv     ***************" << std::endl;
-    std::cout <<                "          Patchdata Functionality           " << std::endl;
-    std::cout <<                 "*************     vvvvv     ***************" << std::endl << std::endl;
 
-
-    std::cout << std::endl << "*************     vvvvv     ***************" << std::endl;
-    std::cout <<              "             Printing CVARS                " << std::endl;
-    std::cout <<              "*************     vvvvv     ***************" << std::endl << std::endl;
+    rat1.printMetaData();
+    rat1.printCvars();
+    rat1.printDvars();
     
-    for (auto & m : rat1.cvars) {
-        std::cout << "cvars[" << m.first << "]: " << m.second << std::endl;
-    }
-
-    std::cout << std::endl << "*************     vvvvv     ***************" << std::endl;
-    std::cout <<              "             Printing DVARS                " << std::endl;
-    std::cout <<              "*************     vvvvv     ***************" << std::endl << std::endl;
-    
-    for (auto & m : rat1.dvars) {
-        std::cout << "dvars[" << m.first << "]: " << m.second << std::endl;
-    }
     
 }

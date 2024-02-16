@@ -9,9 +9,9 @@
 #include "FileData.h"
 #include "PatchData.h"
 
-#define TEST_STRING_UTIL
+// #define TEST_STRING_UTIL
 // #define TEST_FILE_DATA
-// #define TEST_PATCH_ADE
+#define TEST_PATCH_ADE
 
 extern void PatchData_test();
 extern void StringUtil_Test();

@@ -126,7 +126,7 @@ void FileData::readFile()
                     arrayFlag = true;
                 } else {
                     // write the previous array to the map
-                    std::cout << "time for a new array" << std::endl;
+                    // std::cout << "time for a new array" << std::endl;
                     data[array_char] = array_data;
                     // clear for next array
                     array_data.clear();
@@ -154,6 +154,10 @@ void FileData::readFile()
 
 void FileData::printData()
 {
+    std::cout << "*************     ^^^^^     ***************" << std::endl;
+    std::cout << "              Printing Data                " << std::endl;
+    std::cout << "*************     ^^^^^     ***************" << std::endl << std::endl;
+
     for (auto & m : data) {
 
         std::cout << std::endl << m.first << ": ";
@@ -165,8 +169,29 @@ void FileData::printData()
                 if (count++ % 5 == 0) std::cout << "\n\t";
             }
         } else {
-            std::cout << m.second[0];
+            if (m.second.size() > 0)
+                std::cout << m.second[0];
         }
+        // std::cout << "Finished with " << m.first << std::endl;
     }
     std::cout << std::endl;
+
+    // std::cout << "Finished print" << std::endl;
+}
+
+void FileData::printMetaData()
+{
+    std::cout << "*************     ^^^^^     ***************" << std::endl;
+    std::cout << "                 MetaData                  " << std::endl;
+    std::cout << "*************     ^^^^^     ***************" << std::endl << std::endl;
+
+    
+    std::vector<std::string> names = {"Filename", "Start Date", "End Date", "Rat ID", "Experiment", "Group", "Box", "Start Time", "End Time", "Program"};
+    std::vector<std::string> vals = {meta.file_name, meta.start_date, meta.end_date,
+                            meta.rat_id, std::to_string(meta.experiment), std::to_string(meta.group),
+                            std::to_string(meta.box), meta.start_time, meta.end_time, meta.program};
+
+    for (int i = 0; i < names.size(); i++) {
+        StringUtil::prettyWrite(names[i], vals[i]);
+    }
 }
