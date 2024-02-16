@@ -59,8 +59,14 @@ PatchData::PatchData(std::string _filename_) : FileData(_filename_)
 
 // finds last occurance of wd_id in the data vector starting at idx and iterating backwards
 std::string PatchData::findLastOccurrence(int idx, std::string wd_id) {
-    auto rit = data[dvar_array].crbegin() + idx;
+    auto rit = data[dvar_array].crend() - idx - 2;
     auto rend = data[dvar_array].crend();
+
+    // std::cout << "crbegin(): " << *(data[dvar_array].crbegin()) << std::endl;
+    // std::cout << "index: " << idx << std::endl;
+
+    // std::cout << "crbegin() - idx - 2: " << *(rit) << std::endl;
+    // std::cout << "ending at: " << *(rend-1) << std::endl;
 
     while (rit != rend) {
         if (*rit == wd_id) {
@@ -135,7 +141,7 @@ void PatchData::analyze()
             continue;
         }
         if (arr[i] == "-20.000") {
-            
+
             // Mark timers and calc times
 
             if (t.start == "") {
@@ -170,8 +176,12 @@ void PatchData::analyze()
             
             // find last occurance of the WD_ID
             WD_t = findLastOccurrence(i-2, WD_ID);
-            if (WD_t != "") {
-                travelTimes.push_back(atof(WD_t.c_str()));
+            if (/*(arr[i-1] != "0.000") &&*/ (WD_t != "")) {
+                float end = std::atof(arr[i-1].c_str());
+                float beg = std::atof(WD_t.c_str());
+                std::cout << "end: " << end << " beg: " << beg << std::endl;
+                float prevWD_t = end - beg;
+                travelTimes.push_back(prevWD_t);
             }
         }
 
