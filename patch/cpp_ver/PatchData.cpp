@@ -1,6 +1,7 @@
 #include "PatchData.h"
 #include "StringUtil.h"
 #include "HelperFoo.h"
+#include "FileData.h"
 #include <string>
 #include <bits/stdc++.h>
 
@@ -83,37 +84,95 @@ std::string PatchData::findLastOccurrence(int idx, std::string wd_id) {
 }
 
 
-void PatchData::printCvars()
+std::ofstream& operator<<(std::ofstream& out, PatchData& p)
 {
-    std::cout << std::endl << "*************     vvvvv     ***************" << std::endl;
-    std::cout <<              "             Printing CVARS                " << std::endl;
-    std::cout <<              "*************     vvvvv     ***************" << std::endl << std::endl;
-    
-    std::string keyList[] = {"PatchChangeDelay", "InterRewardDelay", 
+    // print meta data
+    p.printMetaData(&out, comma);
+    p.printCvars(&out, comma);
+    p.printDvars(&out, comma);
+    out << std::endl;
+
+    return out;
+}
+
+void PatchData::printCvarHeaders(std::ofstream* fout) {
+
+    std::vector<std::string> keyList = {"PatchChangeDelay", "InterRewardDelay", 
                             "FirstRewardDelay", "PatchStartingWater", 
                             "RewardDecreaseFactor", "MaximumTotalWater",
                              "MaximumSessionDuration"};
 
-    for (auto & k : keyList) {
-        StringUtil::prettyWrite(k, cvars[k]);
+    for (auto & k : keyList)
+    {
+        *fout << k << ", ";
     }
 
 }
 
-
-void PatchData::printDvars()
+void PatchData::printCvars(std::ofstream* fout, pformat pf)
 {
-    std::cout << std::endl << "*************     vvvvv     ***************" << std::endl;
-    std::cout <<              "             Printing DVARS                " << std::endl;
-    std::cout <<              "*************     vvvvv     ***************" << std::endl << std::endl;
-    
-    // std::cout << std::left << std::setw(20) << "patchChanges: " << std::right << std::setw(20) << dvars["patchChanges"] << std::endl;
-    std::string keyList[] = {"TotalWater", "SessionDuration", "patchChanges", 
+    std::vector<std::string> keyList = {"PatchChangeDelay", "InterRewardDelay", 
+                            "FirstRewardDelay", "PatchStartingWater", 
+                            "RewardDecreaseFactor", "MaximumTotalWater",
+                            "MaximumSessionDuration"};
+    if (pf == single) {
+        std::cout << std::endl << "*************     vvvvv     ***************" << std::endl;
+        std::cout <<              "             Printing CVARS                " << std::endl;
+        std::cout <<              "*************     vvvvv     ***************" << std::endl << std::endl;
+
+        for (auto & k : keyList) {
+            StringUtil::prettyWrite(k, cvars[k]);
+        }
+    } else if (pf == comma) {
+        for (size_t i = 0; i < keyList.size(); i++)
+        {
+            *fout << cvars[keyList[i]] << ", ";
+        }
+    }
+
+}
+
+void PatchData::printDvarHeaders(std::ofstream* fout) {
+
+    std::vector<std::string> keyList = {"TotalWater", "SessionDuration", "patchChanges", 
                             "AvgPatchTime", "TotalLeftRewards", "TotalRightRewards", 
-                            "TotalRewards", "IndifferencePoint", "PatchOnlyWater", 
-                            "AvgTravelTime"};
-    for (auto & k : keyList) {
-        StringUtil::prettyWrite(k, dvars[k]);
+                            "TotalRewards", "IndifferencePoint", "PatchOnlyWater"/*, 
+                            "AvgTravelTime"*/};
+
+    for (size_t i = 0; i < keyList.size(); i++) {
+        *fout << keyList[i] << ", ";
+    }
+
+}
+
+void PatchData::printHeaders(std::ofstream* fout)
+{
+    printMetaHeaders(fout);
+    printCvarHeaders(fout);
+    printDvarHeaders(fout);
+}
+
+void PatchData::printDvars(std::ofstream* fout, pformat pf)
+{
+        // std::cout << std::left << std::setw(20) << "patchChanges: " << std::right << std::setw(20) << dvars["patchChanges"] << std::endl;
+    std::vector<std::string> keyList = {"TotalWater", "SessionDuration", "patchChanges", 
+                            "AvgPatchTime", "TotalLeftRewards", "TotalRightRewards", 
+                            "TotalRewards", "IndifferencePoint", "PatchOnlyWater"/*, 
+                            "AvgTravelTime"*/};
+    if (pf == single) {
+        std::cout << std::endl << "*************     vvvvv     ***************" << std::endl;
+        std::cout <<              "             Printing DVARS                " << std::endl;
+        std::cout <<              "*************     vvvvv     ***************" << std::endl << std::endl;
+        
+        for (auto & k : keyList) {
+            StringUtil::prettyWrite(k, dvars[k]);
+        }
+    } else if (pf == comma) {
+        for (size_t i = 0; i < keyList.size(); i++)
+        {
+            *fout << dvars[keyList[i]] << ", ";
+        }
+        
     }
 }
 
@@ -122,8 +181,8 @@ void PatchData::analyze()
 {
     std::vector<std::string> arr = data[PatchData::dvar_array];
     int maxDvarLength = arr.size(); 
-    std::string WD_ID, WD_t, key;
-    int pokeID;
+    std::string /*WD_ID, WD_t,*/ key;
+    // int pokeID;
 
     // std::cout << "maxDvarLength: " << maxDvarLength << std::endl;
 
@@ -165,24 +224,32 @@ void PatchData::analyze()
                 t.start = arr[i+1]; // mark start time of next epoch
             }
 
+            
             // calc travel time
             // ask amy about what its supposed to represent
             // perhaps look at -3 or -4 signal when light turns on
 
             // Pokes
-            pokeID = std::atoi(arr[i-2].c_str());  // it's back 2 spots in amy's data file but ahead in marks
+            // pokeID = std::atoi(arr[i-2].c_str());  // it's back 2 spots in amy's data file but ahead in marks
             // pokeID = arr[i+2];  // for the location of the flag  in mark's data files
-            WD_ID = (pokeID == -14) ? "-23.000" : "-24.000";
             
-            // find last occurance of the WD_ID
-            WD_t = findLastOccurrence(i-2, WD_ID);
-            if (/*(arr[i-1] != "0.000") &&*/ (WD_t != "")) {
-                float end = std::atof(arr[i-1].c_str());
-                float beg = std::atof(WD_t.c_str());
-                std::cout << "end: " << end << " beg: " << beg << std::endl;
-                float prevWD_t = end - beg;
-                travelTimes.push_back(prevWD_t);
-            }
+            // if pokeID is -14 then the patch switched to the right feeder
+            // look for when the rat left the left feeder last (-23 signal)
+
+            // otherwise the poke was a -13 and they switched to the left feeder
+            // so look for the last right removal (-24)
+            
+            // WD_ID = (pokeID == -14) ? "-23.000" : "-24.000";
+            
+            // // find last occurance of the WD_ID
+            // WD_t = findLastOccurrence(i-2, WD_ID);
+            // if (/*(arr[i-1] != "0.000") &&*/ (WD_t != "")) {
+            //     float end = std::atof(arr[i-1].c_str());
+            //     float beg = std::atof(WD_t.c_str());
+            //     std::cout << "end: " << end << " beg: " << beg << std::endl;
+            //     float prevWD_t = end - beg;
+            //     travelTimes.push_back(prevWD_t);
+            // }
         }
 
 
@@ -284,9 +351,9 @@ void PatchData::analyze()
     data["TimeList"] = StringUtil::ftosVec(timeList);
     data["NullChanges"] = nullChanges;
 
-    float avgTravelTime = std::accumulate(travelTimes.begin(), travelTimes.end(), 0);
-    avgTravelTime = (travelTimes.size() == 0 ? 0 : avgTravelTime/travelTimes.size());
-    data["AvgTravelTime"] = StringUtil::makeVecStrNum(avgTravelTime);
+    // float avgTravelTime = std::accumulate(travelTimes.begin(), travelTimes.end(), 0);
+    // avgTravelTime = (travelTimes.size() == 0 ? 0 : avgTravelTime/travelTimes.size());
+    // data["AvgTravelTime"] = StringUtil::makeVecStrNum(avgTravelTime);
 
 }
 

@@ -108,7 +108,7 @@ void StringUtil_Test()
 void FileData_test()
 {
 
-    FileData rat1("../testdata/!2024-02-07_07h13m.Subject Q53");
+    FileData rat1("../testdata/!2024-02-16_07h16m.Subject Q53");
 
     rat1.printMetaData();
     rat1.printData();
@@ -118,7 +118,7 @@ void FileData_test()
 void PatchData_test()
 {
     // all of the FileData functionality should still work
-    PatchData rat1("../testdata/!2023-10-10_14h18m.Subject B01");
+    PatchData rat1("../testdata/!2024-02-16_07h16m.Subject Q53");
    
 #ifdef DEBUG
     rat1.printData();
@@ -128,9 +128,9 @@ void PatchData_test()
     // test PatchData functionality
 
 
-    rat1.printMetaData();
-    rat1.printCvars();
-    rat1.printDvars();
+    rat1.printMetaData(nullptr, single);
+    rat1.printCvars(nullptr, single);
+    rat1.printDvars(nullptr, single);
     
     
 }

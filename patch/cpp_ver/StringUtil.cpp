@@ -37,7 +37,9 @@ namespace StringUtil
             // Add item if it's non-empty, or if skip empties is turned off
 
             // remove carriage return
+
             item.erase( std::remove(item.begin(), item.end(), '\r'), item.end() );
+            item.erase( std::remove(item.begin(), item.end(), '\n'), item.end() );
 
             if (!skipEmpties || !isEmpty(item))
             {

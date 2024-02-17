@@ -4,6 +4,7 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
+#include <fstream>
 #define NUM_CVAR 7
 #define NUM_DVAR 2
 #define NUM_VALID_FILEFORMATS 1
@@ -37,6 +38,8 @@ class PatchData : public FileData
 
         // private member functions
         void analyze();
+        void printCvarHeaders(std::ofstream* fout);
+        void printDvarHeaders(std::ofstream* fout);
 
     public:
         // member vars
@@ -47,14 +50,20 @@ class PatchData : public FileData
         std::unordered_map<std::string, int> consumedVols;
         std::unordered_map<std::string, int> leftRewards;
         std::unordered_map<std::string, int> rightRewards;
-        std::vector<float> travelTimes, timeList;
+        std::vector<float> /*travelTimes,*/ timeList;
         std::vector<std::string> nullChanges;
         int leftPokes, rightPokes;
         
         // member functions
         PatchData(std::string _filename_);
-        void printCvars();
-        void printDvars();
+        void printCvars(std::ofstream* fout = nullptr, pformat pf = single);
+        void printDvars(std::ofstream* fout = nullptr, pformat pf = single);
+        void printHeaders(std::ofstream* fout);
+
+
+
+        // friends
+        friend std::ofstream& operator<<(std::ofstream& out, PatchData& p);
         
         
 

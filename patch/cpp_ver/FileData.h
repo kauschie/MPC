@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <fstream>
+enum pformat {single, comma};
 
 struct MetaData {
     std::string file_name,
@@ -24,7 +25,6 @@ class FileData {
 
 private:
     std::string fileName;
-    std::ifstream fin;
     void readFile();
 
 public:
@@ -35,7 +35,7 @@ public:
     // foos
     FileData(std::string _fileName_ = "");
     void printData();
-    void printMetaData();
-
+    void printMetaData(std::ofstream* fout = nullptr, pformat pf = single);
+    void printMetaHeaders(std::ofstream* fout);
 
 };
