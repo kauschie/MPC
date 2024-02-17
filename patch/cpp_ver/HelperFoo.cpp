@@ -17,4 +17,12 @@ namespace hf
         return sum;
     }
 
+    float getFreqSum(std::unordered_map<std::string, float> um) {
+        float sum = 0;
+        for (auto & m : um) {
+            sum += m.second;
+        }
+        return sum;
+    }
+
 }

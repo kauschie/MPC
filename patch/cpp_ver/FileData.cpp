@@ -101,7 +101,9 @@ void FileData::readFile()
                 break;
 
             case 9:
-                meta.end_time = words[2];
+                first_dig = (words[2].size() == 1 ? ("0"+words[2]) : words[2]);
+                meta.end_time = first_dig + ":" + words[3] + ":" + words[4]; 
+                // meta.end_time = words[2];
                 break;
 
             case 10:

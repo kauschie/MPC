@@ -108,7 +108,7 @@ void StringUtil_Test()
 void FileData_test()
 {
 
-    FileData rat1("../testdata/!2024-02-16_07h16m.Subject Q53");
+    FileData rat1("../testdata/!2024-02-07_07h13m.Subject Q53");
 
     rat1.printMetaData();
     rat1.printData();

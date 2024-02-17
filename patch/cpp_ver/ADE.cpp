@@ -16,6 +16,7 @@ namespace fs = std::filesystem;
 // #define TEST_STRING_UTIL
 // #define TEST_FILE_DATA
 // #define TEST_PATCH_ADE
+#define CMD_LINE
 
 extern void PatchData_test();
 extern void StringUtil_Test();
@@ -35,6 +36,8 @@ int main()
 #ifdef TEST_PATCH_ADE
     PatchData_test();
 #endif
+
+#ifdef CMD_LINE
 
     std::string fname = "data.csv";
     std::ofstream fout(fname);
@@ -64,6 +67,7 @@ int main()
     std::cout << std::endl;
 
     fout.close();
-    
+#endif
+
     return 0;
 }
