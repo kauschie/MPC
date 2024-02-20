@@ -16,10 +16,14 @@ namespace fs = std::filesystem;
 // #define TEST_STRING_UTIL
 // #define TEST_FILE_DATA
 // #define TEST_PATCH_ADE
+// #define DATE_TEST
+#define NORMAL_OP
+
 
 extern void PatchData_test();
 extern void StringUtil_Test();
 extern void FileData_test();
+extern void FileName_test();
 
 int main()
 {
@@ -35,6 +39,13 @@ int main()
 #ifdef TEST_PATCH_ADE
     PatchData_test();
 #endif
+
+#ifdef DATE_TEST
+    FileName_test();
+#endif
+
+
+#ifdef NORMAL_OP
 
     std::string fname = "data.csv";
     std::ofstream fout(fname);
@@ -65,5 +76,8 @@ int main()
 
     fout.close();
     
+
+#endif
+
     return 0;
 }

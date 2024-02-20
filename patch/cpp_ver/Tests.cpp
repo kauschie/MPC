@@ -134,3 +134,9 @@ void PatchData_test()
     
     
 }
+
+void FileName_test()
+{
+    std::cout << hf::getFileName() << std::endl;
+
+}

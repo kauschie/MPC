@@ -17,4 +17,18 @@ namespace hf
         return sum;
     }
 
+    std::string getFileName()
+    {
+        time_t now = time(NULL);
+        std::tm * timeinfo;
+        char buf[180];
+        timeinfo = localtime(&now);
+
+        strftime(buf, 180, "%y%m%d%H%M%S_patchdata.csv", timeinfo);
+        // std::cout << buf << std::endl;
+
+        return std::string(buf);
+    }
+
+
 }
