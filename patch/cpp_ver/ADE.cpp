@@ -10,6 +10,7 @@
 #include "Tests.h"
 #include "FileData.h"
 #include "PatchData.h"
+#include "HelperFoo.h"
 
 namespace fs = std::filesystem;
 
@@ -47,7 +48,7 @@ int main()
 
 #ifdef NORMAL_OP
 
-    std::string fname = "data.csv";
+    std::string fname = hf::getFileName();
     std::ofstream fout(fname);
     std::vector<PatchData> files;
 
