@@ -56,7 +56,7 @@ int main()
         return 1;
     }
 
-    fs::path p{"../testdata"};
+    fs::path p{"data"};
 
     for (auto const& file : fs::directory_iterator{p}) {
         std::cout << file.path() << std::endl;

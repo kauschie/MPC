@@ -46,8 +46,8 @@ class PatchData : public FileData
         std::unordered_map<std::string, std::string> cvars;
         std::unordered_map<std::string, std::string> dvars;
         std::unordered_map<std::string, int> rewards;
-        std::unordered_map<std::string, int> rejectVols;
-        std::unordered_map<std::string, int> consumedVols;
+        std::unordered_map<std::string, float> rejectVols;
+        std::unordered_map<std::string, float> consumedVols;
         std::unordered_map<std::string, int> leftRewards;
         std::unordered_map<std::string, int> rightRewards;
         std::vector<float> /*travelTimes,*/ timeList;
