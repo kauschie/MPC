@@ -26,7 +26,7 @@ extern void StringUtil_Test();
 extern void FileData_test();
 extern void FileName_test();
 
-int main()
+int main(int argc, char *argv[])
 {
 
 #ifdef TEST_STRING_UTIL
@@ -57,9 +57,13 @@ int main()
         return 1;
     }
 
+    // std::stringstream ss;
+    // ss << fs::current_path() << "/data";
+    // std::string path = ss.str(); 
+
     fs::path p{"data"};
 
-    for (auto const& file : fs::directory_iterator{p}) {
+    for (auto const& file : fs::directory_iterator{fs::absolute(p)}) {
         std::cout << file.path() << std::endl;
         
         size_t found = std::string(file.path()).find("!2");
