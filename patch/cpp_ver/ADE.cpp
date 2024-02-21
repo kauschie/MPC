@@ -49,7 +49,11 @@ int main(int argc, char *argv[])
 #ifdef NORMAL_OP
 
     std::string fname = hf::getFileName();
-    std::ofstream fout(fname);
+    fs::path executable_path = fs::absolute(fs::path(argv[0])).parent_path();
+    fs::path data_directory = executable_path / "data";
+    fs::path outFileCorrectPath = executable_path / fname;
+
+    std::ofstream fout(outFileCorrectPath);
     std::vector<PatchData> files;
 
     if (!fout) {
@@ -64,13 +68,11 @@ int main(int argc, char *argv[])
     // fs::path p{"data"};
 
     // Get the path to the directory containing the executable
-    fs::path executable_path = fs::absolute(fs::path(argv[0])).parent_path();
 
     // Construct the path to the "data" directory relative to the executable
-    fs::path data_directory = executable_path / "data";
 
     for (auto const& file : fs::directory_iterator{data_directory}) {
-        std::cout << file.path() << std::endl;
+        std::cout << "Processing " << file.path() << std::endl;
         
         size_t found = std::string(file.path()).find("!2");
         if (found == std::string::npos) continue; // skip files that aren't recognized data files
@@ -79,11 +81,12 @@ int main(int argc, char *argv[])
         PatchData p(file.path());
         files.push_back(p);
         if (files.size() == 1) {
-            p.printHeaders(&fout); fout << std::endl;
+            p.printHeaders(&fout); 
+            fout << std::endl;
         }
         fout << p;
     }
-    std::cout << std::endl;
+    std::cout << "\nFinished writing data to " << outFileCorrectPath << std::endl;
 
     fout.close();
     
