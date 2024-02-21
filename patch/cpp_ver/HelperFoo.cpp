@@ -1,6 +1,7 @@
 #include "HelperFoo.h"
 #include <unordered_map>
 #include <string>
+#include <vector>
 
 /*
     Takes in an unordered map<std::string key, int val> and returns the sum
@@ -21,6 +22,14 @@ namespace hf
         float sum = 0;
         for (auto & m : um) {
             sum += m.second;
+        }
+        return sum;
+    }
+
+    float getVecSum(std::vector<float> v) {
+        float sum = 0;
+        for (auto && ele : v) {
+            sum += ele;
         }
         return sum;
     }

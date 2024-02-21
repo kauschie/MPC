@@ -3,7 +3,8 @@
 #include "HelperFoo.h"
 #include "FileData.h"
 #include <string>
-#include <bits/stdc++.h>
+//#include <bits/stdc++.h> removed because it doesnt come native to Mac
+#include <iostream>
 
 // #define DEBUG
 /************************
@@ -297,7 +298,8 @@ void PatchData::analyze()
 
 
     // set either to 0 (avoid div by zero error) or the avg
-    float avg = std::accumulate(timeList.begin(), timeList.end(), 0);
+    // float avg = std::accumulate(timeList.begin(), timeList.end(), 0);
+    float avg = hf::getVecSum(timeList);
     avg = (timeList.size() == 0) ? 0 : (avg/timeList.size());
     
     // convert to vector of strings for the map

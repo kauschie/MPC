@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_map>
 #include <ctime>
+#include <vector>
 
 namespace hf 
 {
@@ -9,5 +10,8 @@ namespace hf
     float getFreqSum(std::unordered_map<std::string, float> um);
 
     std::string getFileName();
+
+    float getVecSum(std::vector<float> v);
+
 
 }
