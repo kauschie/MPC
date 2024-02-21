@@ -61,9 +61,15 @@ int main(int argc, char *argv[])
     // ss << fs::current_path() << "/data";
     // std::string path = ss.str(); 
 
-    fs::path p{"data"};
+    // fs::path p{"data"};
 
-    for (auto const& file : fs::directory_iterator{fs::absolute(p)}) {
+    // Get the path to the directory containing the executable
+    fs::path executable_path = fs::absolute(fs::path(argv[0])).parent_path();
+
+    // Construct the path to the "data" directory relative to the executable
+    fs::path data_directory = executable_path / "data";
+
+    for (auto const& file : fs::directory_iterator{data_directory}) {
         std::cout << file.path() << std::endl;
         
         size_t found = std::string(file.path()).find("!2");
