@@ -1,0 +1,120 @@
+# Makefile for macOS universal binary compilation and app bundling
+
+# Object files and compilation flags
+OBJECTS = ADE.o StringUtil.o FileData.o PatchData.o Tests.o HelperFoo.o
+FLAGS = -Wall
+COMP = clang++ -g -std=c++17 -mmacosx-version-min=12.0
+APPNAME = ADE
+
+# Architectures for universal binary
+ARCH_FLAGS = -arch x86_64 -arch arm64
+
+# App bundle structure
+BUNDLE_DIR = $(APPNAME).app
+CONTENTS_DIR = $(BUNDLE_DIR)/Contents
+MACOS_DIR = $(CONTENTS_DIR)/MacOS
+RESOURCES_DIR = $(CONTENTS_DIR)/Resources
+ICONSET = MyIcon.iconset
+ICNS = $(RESOURCES_DIR)/myicon.icns
+ICON_PNG = icon.png
+
+# Compile all
+all: $(APPNAME)
+
+# Link object files and create universal binary (x86_64 and arm64)
+$(APPNAME): $(OBJECTS)
+	$(COMP) $(ARCH_FLAGS) -o $(APPNAME) $(OBJECTS) $(FLAGS)
+	@echo "Universal binary compilation complete."
+
+# Compile each object file for universal binary
+ADE.o: ADE.cpp
+	$(COMP) -c $(ARCH_FLAGS) ADE.cpp
+
+StringUtil.o: StringUtil.cpp
+	$(COMP) -c $(ARCH_FLAGS) StringUtil.cpp
+
+FileData.o: FileData.cpp
+	$(COMP) -c $(ARCH_FLAGS) FileData.cpp
+
+PatchData.o: PatchData.cpp
+	$(COMP) -c $(ARCH_FLAGS) PatchData.cpp
+
+Tests.o: Tests.cpp
+	$(COMP) -c $(ARCH_FLAGS) Tests.cpp
+
+HelperFoo.o: HelperFoo.cpp
+	$(COMP) -c $(ARCH_FLAGS) HelperFoo.cpp
+
+# Clean object files and executable
+clean:
+	rm -f $(APPNAME) *.o
+	rm -rf $(BUNDLE_DIR)
+	rm -rf $(ICONSET)
+	rm -f $(ICNS)
+	@echo "Cleanup complete."
+
+# Create .iconset folder and resize images using ImageMagick
+iconset: $(ICON_PNG)
+	mkdir -p $(ICONSET)
+	convert $(ICON_PNG) -resize 16x16 $(ICONSET)/icon_16x16.png
+	convert $(ICON_PNG) -resize 32x32 $(ICONSET)/icon_32x32.png
+	convert $(ICON_PNG) -resize 64x64 $(ICONSET)/icon_32x32@2x.png
+	convert $(ICON_PNG) -resize 128x128 $(ICONSET)/icon_128x128.png
+	convert $(ICON_PNG) -resize 256x256 $(ICONSET)/icon_128x128@2x.png   # Missing
+	convert $(ICON_PNG) -resize 256x256 $(ICONSET)/icon_256x256.png
+	convert $(ICON_PNG) -resize 512x512 $(ICONSET)/icon_256x256@2x.png   # Missing
+	convert $(ICON_PNG) -resize 512x512 $(ICONSET)/icon_512x512.png
+	convert $(ICON_PNG) -resize 1024x1024 $(ICONSET)/icon_512x512@2x.png
+	@echo "Iconset created."
+
+# Convert .iconset to .icns using iconutil
+$(ICNS): iconset
+	@echo "Converting .iconset to .icns..."
+	iconutil -c icns $(ICONSET)
+	mkdir -p $(RESOURCES_DIR)
+	mv MyIcon.icns $(ICNS)
+	@echo "Icon (.icns) created."
+
+# Create app bundle
+bundle: $(APPNAME) $(ICNS)
+	@echo "Creating macOS app bundle..."
+	mkdir -p $(MACOS_DIR)
+	# Move the binary to the MacOS folder
+	cp $(APPNAME) $(MACOS_DIR)/
+	# Copy the icon to Resources folder (already handled)
+	# Generate Info.plist
+	@echo "Generating Info.plist..."
+	@echo '<?xml version="1.0" encoding="UTF-8"?>' > $(CONTENTS_DIR)/Info.plist
+	@echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> $(CONTENTS_DIR)/Info.plist
+	@echo '<plist version="1.0">' >> $(CONTENTS_DIR)/Info.plist
+	@echo '<dict>' >> $(CONTENTS_DIR)/Info.plist
+	@echo '  <key>CFBundleName</key>' >> $(CONTENTS_DIR)/Info.plist
+	@echo '  <string>$(APPNAME)</string>' >> $(CONTENTS_DIR)/Info.plist
+	@echo '  <key>CFBundleExecutable</key>' >> $(CONTENTS_DIR)/Info.plist
+	@echo '  <string>$(APPNAME)</string>' >> $(CONTENTS_DIR)/Info.plist
+	@echo '  <key>CFBundleIdentifier</key>' >> $(CONTENTS_DIR)/Info.plist
+	@echo '  <string>com.example.$(APPNAME)</string>' >> $(CONTENTS_DIR)/Info.plist
+	@echo '  <key>CFBundleIconFile</key>' >> $(CONTENTS_DIR)/Info.plist
+	@echo '  <string>myicon</string>' >> $(CONTENTS_DIR)/Info.plist
+	@echo '  <key>LSMinimumSystemVersion</key>' >> $(CONTENTS_DIR)/Info.plist
+	@echo '  <string>10.10.0</string>' >> $(CONTENTS_DIR)/Info.plist
+	@echo '</dict>' >> $(CONTENTS_DIR)/Info.plist
+	@echo '</plist>' >> $(CONTENTS_DIR)/Info.plist
+	@echo "App bundle creation complete."
+
+# Target to build and bundle at once
+build_and_bundle: all bundle
+	@echo "Build and bundle process complete."
+	@echo "Cleaning up now..."
+	rm *.o *.cpp *.h 
+	rm ADE
+	rm -r icon
+	rm -r MyIcon.iconset
+	rm icon.png
+	mkdir RataData
+	mv data RataData/
+	mv ADE.app RataData/
+	mv Readme.md RataData/
+	zip -rm RataData.zip Ratadata
+	rm -rf Makefile
+
