@@ -1,0 +1,386 @@
+\\ Amy VI Program
+\\ Started 12-15-2015
+\\ By Michael A. Kausch
+\\ Features: VI Schedule of Reinforcement on Fleshler-Hoffman Progression
+\\ made every stimulus' chance at operating random
+\\
+
+
+\\Inputs
+^LeftPoke = 1
+^RightPoke = 2
+^MiddlePoke = 3
+
+\\Outputs
+^LStimLight = 1
+^RStimLight = 2
+^HouseLight = 3
+^Pump = 4
+^Sonalert = 5
+^Red = 6
+^Yellow = 7
+^Green  = 8
+
+\A Control Variables
+^SessionDuration = 0   \ session duration in centiseconds
+^VIMean = 1  \ mean value for the VI array
+^ActivePoke = 2 \ 1 for left and 2 for right
+^SLRT2ON = 3   \ time that the beep sonalert is on
+^SLRT2OFF = 4  \ time that the beep sonalert is off
+^SLRT2CYC = 5  \ number of cycles of 6 and 7
+^BinDuration = 6  \ Bin Time Size in centi-seconds
+
+
+\B  Data Array
+^Rewards = 0
+^ActivePokes = 1
+^InactivePokes = 2
+
+
+\C  IRT Array
+\D  Current VI Variable
+\E   Error Array
+\F
+\G   Reward Array
+\H
+\I   C Array Counter
+\J   Current Reward Type
+^RandGreen              = 0
+^RandRed                = 1
+^RandYellow             = 2
+^RandHLite              = 3
+^RandLStimLight         = 4
+^RandRStimLight         = 5
+^RandSelectSonalert     = 6
+^SonalertActive         = 7
+
+\K   VI Array
+\L   Variable Reward Timer
+^LRed     = 0
+^LYellow  = 1
+^LGreen   = 2
+^LHouse   = 3
+^LSLRT    = 4
+^LLSL = 5
+^LRSL = 6
+
+\M
+\N   Variable Reward Timer Array
+\O  sonalert bool for 50%
+\P  Act Rsp Bin
+\Q  Inact Rsp Bin
+\R  Reward Bin
+\S  Bin Counter
+\T
+^SessionTimer  = 0
+^VITimer       = 1
+^RTimer        = 2
+^YTimer        = 3
+^GTimer        = 4
+^HLTimer       = 5
+^TSLRT1         = 6
+^TSLRT2         = 7
+^BinTimer       = 8
+^TLSL           = 9
+^TRSL           = 10
+
+\U
+\V
+\W
+\X - Sonalert Counter
+\Y
+\Z   Signals
+^Z_End = 1
+^Z_Reward = 2
+^Z_VIStart = 3
+
+DIM A=6
+DIM C=10000
+DIM B=2
+DIM L=6
+DIM J=7
+DIM T=10
+DIM P=1000
+DIM Q=1000
+DIM R=1000
+
+
+
+LIST K = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
+LIST G = 0, 1, 2,3,4,5
+LIST N = 100,200,300,400,500
+LIST O = 0, 1
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\ Session Clock  \\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.1,
+
+S1,\\ Wait for macro to initialize variables
+
+#Start: ---> S2
+
+S2,
+
+0.01": ADD T(^SessionTimer); IF T(^SessionTimer) >= A(^SessionDuration) [@End, @cont]
+                                @End: Z^Z_End ---> S3
+                                @Cont: ---> SX
+S3,
+
+3": ---> STOPABORTFLUSH
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\ VI Control \\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.2,
+
+S1,
+
+0.01":  ---> S2
+
+S2,
+
+#Start: INITCONSTPROBARR K,A(^VIMean); RANDD D = K; SET C(I)=-5; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987   ---> S3
+
+S3,
+
+0.01": ADD T(^VITimer); IF T(^VITimer) >= D  [@VIOver]
+                @VIOver: SET T(^VITimer)=0; RANDD D = K ---> S4
+
+S4,
+
+#RA(^ActivePoke): Z^Z_Reward; ADD B(^Rewards), R(S); SET C(I)=-3; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987  ---> S5
+
+S5,
+
+#Z^Z_VIStart: RANDD D = K; SET C(I)=-5; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987    ---> S3
+
+
+
+\SET A = A * 1";
+\~A := Round(A);~ ---> SX \ Eliminate the Fraction of a "Tick"
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\ Nose Poke CTRL \\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.3,
+
+S1,
+
+#START: IF A(^ActivePoke) = 1 [@left, @right]
+            @left: ---> S2
+            @right: IF A(^ActivePoke)=2 [] ---> S3
+
+S2,
+
+#R(^LeftPoke): ADD B(^ActivePokes), P(S); SET C(I)=-1; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> SX
+#R(^RightPoke): ADD B(^InactivePokes), Q(S); SET C(I)=-2; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987 ---> SX
+
+
+
+S3,
+
+#R(^LeftPoke): ADD B(^InactivePokes), Q(S); SET C(I)=-1; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987    ---> SX
+#R(^RightPoke): ADD B(^ActivePokes), P(S); SET C(I)=-2; ADD I; SET C(I)=T(^SessionDuration); ADD I; SET C(I)=-987.987    ---> SX
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\ Red Light NEW \\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.4,
+
+S1,
+
+#Z^Z_Reward: RANDI J(1)=G; IF J(1) = 1 [ON ^Red; RANDI L(^LRed) = N] ---> S2
+
+S2,
+
+#Z^Z_VIStart: SET T(^RTimer)=0; OFF ^Red ---> S1
+0.01": ADD T(^RTimer); IF T(^RTimer) >= L(^LRed) [SET T(^RTimer)=0; OFF ^Red; Z^Z_VIStart] ---> S1
+
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\ Yellow Light NEW \\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.5,
+
+S1,
+
+#Z^Z_Reward: RANDI J(2)=G; IF J(2) = 1 [ON ^Yellow; RANDI L(^LYellow) = N] ---> S2
+
+S2,
+
+#Z^Z_VIStart: SET T(^YTimer)=0; OFF ^Yellow ---> S1
+0.01": ADD T(^YTimer); IF T(^YTimer) >= L(^LYellow) [SET T(^YTimer)=0; OFF ^Yellow; Z^Z_VIStart] ---> S1
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\ Green Light NEW\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.6,
+
+S1,
+
+#Z^Z_Reward: RANDI J(0)=G; IF J(0) = 1 [ON ^Green; RANDI L(^LGreen) = N] ---> S2
+
+S2,
+
+#Z^Z_VIStart: SET T(^GTimer)=0; OFF ^Green ---> S1
+0.01": ADD T(^GTimer); IF T(^GTimer) >= L(^LGreen) [SET T(^GTimer)=0; OFF ^Green; Z^Z_VIStart] ---> S1
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\ House Light \\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.7,
+
+S1,
+
+#Z^Z_Reward: RANDI J(3)=G; IF J(3) = 1 [ON ^HouseLight; RANDI L(^LHouse) = N] ---> S2
+
+S2,
+
+#Z^Z_VIStart: SET T(^HLTimer)=0; OFF ^HouseLight ---> S1
+0.01": ADD T(^HLTimer); IF T(^HLTimer) >= L(^LHouse) [SET T(^HLTimer)=0; OFF ^HouseLight; Z^Z_VIStart] ---> S1
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\Sonalert Control\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.8,
+
+S1,
+
+#Z^Z_Reward: RANDI J(7)=G; IF J(7) = 1 [@ON, @OFF]
+              @ON: RANDI J(6)=O; IF J(6) >= 1 [@SONALERT1, @SONALERT2]
+                      @SONALERT1: ON ^Sonalert; RANDI L(^LSLRT) = N ---> S3
+                      @SONALERT2: ON ^Sonalert ---> S4
+              @OFF: ---> S2
+
+
+S2,
+
+#Z^Z_VIStart: ---> S1
+
+
+S3,
+
+0.01": ADD T(^TSLRT1); IF T(^TSLRT1) >= L(^LSLRT) [OFF ^Sonalert; SET T(^TSLRT1)=0; Z^Z_VIStart] ---> S1
+
+S4,
+
+#Z^Z_VIStart: OFF ^Sonalert; SET T(^TSLRT1)=0 ---> S1
+0.01": ADD T(^TSLRT2); IF T(^TSLRT2) >= A(^SLRT2ON) [OFF ^Sonalert; SET T(^TSLRT2)=0] ---> S5
+
+S5,
+
+#Z^Z_VIStart: OFF ^Sonalert; SET T(^TSLRT1)=0 ---> S1
+0.01": ADD T(^TSLRT2); IF T(^TSLRT2) >= A(^SLRT2OFF) [@T]
+        @T: SET T(^TSLRT2)=0; ADD X; IF X<= A(^SLRT2CYC)[@T, @F]
+                                        @T: ON ^Sonalert ---> S4
+                                        @F: SET X=0; Z^Z_VIStart ---> S1
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\Left Stimulus Light\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.9,
+
+S1,
+
+#Z^Z_Reward: RANDI J(4)=G; IF J(4) = 1 [ON ^LStimLight; RANDI L(^LLSL) = N] ---> S2
+
+S2,
+
+#Z^Z_VIStart: SET T(^TLSL)=0; OFF ^LStimLight ---> S1
+0.01": ADD T(^TLSL); IF T(^TLSL) >= L(^LLSL) [SET T(^TLSL)=0; OFF ^LStimLight; Z^Z_VIStart] ---> S1
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\Right Stimulus Light\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.10,
+
+S1,
+
+#Z^Z_Reward: RANDI J(5)=G; IF J(5) = 1 [ON ^RStimLight; RANDI L(^LRSL) = N] ---> S2
+
+S2,
+
+#Z^Z_VIStart: SET T(^TRSL)=0; OFF ^RStimLight ---> S1
+0.01": ADD T(^TRSL); IF T(^TRSL) >= L(^LRSL) [SET T(^TRSL)=0; OFF ^RStimLight; Z^Z_VIStart] ---> S1
+
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\ BIN CTRL \\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.11,
+
+S1,
+
+#Start: IF A(^BinDuration) > 0 [@calcbins, @nobin]
+            @calcbins: SET P(S+1)=-987.987, Q(S+1)=-987.987, R(S+1)=-987.987 ---> S2
+            @nobins: SET P(S)=-987.987, Q(S)=-987.987, R(S)=-987.987 ---> SX
+
+S2,
+
+ 0.01": ADD T(^BinTimer); IF T(^BinTimer)>=A(^BinDuration) [@T]
+                 @T: ADD S; SET T(^BinTimer)=0, P(S)=0, P(S+1)=-987.987, Q(S)=0, Q(S+1)=-987.987, R(S)=0, R(S+1)=-987.987 ---> S2
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\ SHOW COMMANDS \\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.12,
+
+S1,
+
+0.01":     SHOW 1,VI TIMER,T(^VITimer), 6,VI,D, 2,Active Pokes,B(^ActivePokes), 4,Rewards,B(^Rewards), 5,Time Remaining,(A(^SessionDuration)-T(^SessionTimer));
+        SHOW 3,Inactive Pokes,B(^InactivePokes);
+        SHOW 11,Green,J(0), 12,Red,J(1), 13,Yellow,J(2), 14,House Light,J(3), 15,L Stim Light,J(4);
+        SHOW 16,R Stim Light,J(5), 17,Sonalert Active?,J(7), 18,Beep (0) Solid (1),J(6) ---> SX
+
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+\\\\\\\\\\ DEFAULT REWARD\\\\\\\\\\\\\\\\\
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+S.S.13,
+
+
+S1,
+
+#Z^Z_Reward: ---> S2
+
+S2,
+
+#Z^Z_VIStart: ---> S1
+1": IF (J(0)=1) OR (J(1)=1) OR (J(2)=1) OR (J(3)=1) OR (J(4)=1) OR (J(5)=1) OR (J(7)=1)  [@StimulusExists, @default]
+        @StimulusExists: ---> S1
+        @default: ON ^Yellow; RANDI L(^LYellow) = N ---> S3
+
+S3,
+
+#Z^Z_VIStart: SET T(^YTimer)=0; OFF ^Yellow ---> S1
+0.01": ADD T(^YTimer); IF T(^YTimer) >= L(^LYellow) [SET T(^YTimer)=0; OFF ^Yellow; Z^Z_VIStart] ---> S1
+
+
+
+

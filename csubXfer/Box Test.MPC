@@ -1,0 +1,58 @@
+\\ Box Test
+\\ Started 12-15-2015
+\\ By Michael A. Kausch
+
+
+\\Inputs
+^LeftPoke = 1
+^RightPoke = 2
+^MiddlePoke = 3
+
+
+
+\\Outputs
+^LStimLight = 1
+^RStimLight = 2
+^HouseLight = 3
+^Pump = 4
+^Sonalert = 6
+\^Red = 6
+^Yellow = 7
+^Green  = 8
+
+
+
+
+S.S.1,
+
+S1,
+
+#R(^LeftPoke): ON 1,5,6,7,8 ---> S2
+
+S2,
+
+#R(^LeftPoke): OFF 1,5,6,7,8 ---> S1
+
+
+S.S.2,
+
+S1,
+
+#R(^RightPoke): ON 4 ---> S2
+
+S2,
+
+4": OFF 4 ---> S1
+
+S.S.3,
+
+S1,
+
+#R(^RightPoke): ON 2,3 ---> S2
+
+S2,
+
+#R(^RightPoke): OFF 2,3 ---> S1
+
+
+
