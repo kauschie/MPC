@@ -5,6 +5,9 @@
 \\ made every stimulus' chance at operating more random
 \\ Reward type is selected at random from G array
 \\ Reward time is selected at random from N array
+\\ Update 10/27/2022
+\\      -- Swapped sonalert output with pump because some boxes have a broken output 5
+\\      -- Pump is now 5 and Sonalert is now 4 for this program
 
 
 \\Inputs
@@ -16,8 +19,8 @@
 ^LStimLight = 1
 ^RStimLight = 2
 ^HouseLight = 3
-^Pump = 4
-^Sonalert = 5
+^Pump = 5
+^Sonalert = 4
 ^Red = 6
 ^Yellow = 7
 ^Green  = 8
@@ -372,6 +375,11 @@ S1,
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\ NULL REWARD\\\\\\\\\\\\\\\\\
 \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+\\ Comment added: 10/27/22
+\\ I don't have time to fully investigate but from what I remember
+\\ there's a small chance that no reward is selected due to random probability of selecting the Rewards
+\\ I think that this state set ensures that that a Z_VIStart signal is sent after 5"
 
 S.S.13,
 

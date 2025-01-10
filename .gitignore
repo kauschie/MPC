@@ -1,4 +1,6 @@
 Macros/
+*.o
+*.Subject*
 **/old
 patch/cpp_ver/data
 patch/py_ver/data
