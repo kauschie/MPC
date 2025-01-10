@@ -1,2 +1,7 @@
 Macros/
 **/old
+patch/cpp_ver/data
+patch/py_ver/data
+patch/testdata
+.vscode
+*.pdf

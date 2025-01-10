@@ -3,3 +3,4 @@ ADE
 *.zip
 *.pdf
 .vscode
+*/__pycache__
